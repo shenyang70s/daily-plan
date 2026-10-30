@@ -14,6 +14,7 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly fieldErrors: Record<string, string[]> = {},
+    readonly details: Record<string, unknown> = {},
   ) { super(message); }
 }
 
@@ -43,7 +44,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
       }
     }
     const fallback = response.status === 409 ? text.versionConflict : text.requestFailed;
-    throw new ApiError(response.status, typeof error.code === 'string' ? error.code : 'HTTP_ERROR', typeof error.message === 'string' ? error.message : fallback, fieldErrors);
+    throw new ApiError(response.status, typeof error.code === 'string' ? error.code : 'HTTP_ERROR', typeof error.message === 'string' ? error.message : fallback, fieldErrors, error.details && typeof error.details === 'object' ? error.details as Record<string, unknown> : {});
   }
   return data as T;
 }

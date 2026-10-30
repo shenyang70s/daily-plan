@@ -31,9 +31,6 @@ export const ExpectedVersionSchema = z.object({ expectedVersion: z.number().int(
 export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
   status: TaskStatusSchema.optional(), expectedVersion: z.number().int().min(1),
 }).strict();
-export const RescheduleTaskSchema = ExpectedVersionSchema.extend({
-  scope: z.enum(['deadline', 'blocks', 'both']), due: TaskDueSchema,
-}).strict();
 export const TaskListSchema = z.object({
   view: z.enum(['all', 'inbox', 'today']).default('all'),
   status: TaskStatusSchema.optional(), type: TaskTypeSchema.optional(),
@@ -61,3 +58,27 @@ export interface TaskDto {
   scheduleBlocks: ScheduleBlockDto[];
 }
 export interface ProjectDto { id: string; name: string; version: number; createdAt: string; updatedAt: string }
+
+const calendarInstant = z.string().datetime({ offset: true });
+export const CalendarRangeSchema = z.object({ startAt: calendarInstant, endAt: calendarInstant, timezone: z.string().min(1).max(64) }).strict();
+export const ConflictConfirmationSchema = z.object({ conflictToken: z.string().regex(/^[a-f0-9]{64}$/).optional() });
+export const CalendarQuerySchema = z.object({ from: calendarInstant, to: calendarInstant, timezone: z.string().min(1).max(64).optional(), taskId: z.string().uuid().optional() }).strict().refine(value => Date.parse(value.to) > Date.parse(value.from) && Date.parse(value.to) - Date.parse(value.from) <= 93 * 86400000, 'Invalid calendar range');
+export const CreateCalendarEventSchema = CalendarRangeSchema.extend({ title: z.string().trim().min(1).max(200), location: z.string().max(200).default(''), note: z.string().max(10000).default(''), externalUrl: z.string().url().refine(value => /^https?:\/\//i.test(value)).nullable().default(null), preparationTask: CreateTaskSchema.optional(), ...ConflictConfirmationSchema.shape }).strict();
+export const UpdateCalendarEventSchema = CreateCalendarEventSchema.omit({ preparationTask: true }).partial().extend({ expectedVersion: z.number().int().min(1) }).strict();
+export const CreateScheduleBlockSchema = CalendarRangeSchema.extend({ taskId: z.string().uuid(), expectedTaskVersion: z.number().int().min(1), ...ConflictConfirmationSchema.shape }).strict();
+export const UpdateScheduleBlockSchema = CalendarRangeSchema.extend({ expectedVersion: z.number().int().min(1), ...ConflictConfirmationSchema.shape }).strict();
+export const CreateScheduledTaskSchema = z.object({ task: CreateTaskSchema, schedule: CalendarRangeSchema, ...ConflictConfirmationSchema.shape }).strict();
+export const CheckConflictsSchema = CalendarRangeSchema.extend({ exclude: z.object({ kind: z.enum(['event', 'block']), id: z.string().uuid() }).strict().optional() }).strict();
+export type CalendarRange = z.infer<typeof CalendarRangeSchema>;
+export type CalendarQuery = z.infer<typeof CalendarQuerySchema>;
+export type CreateCalendarEventInput = z.infer<typeof CreateCalendarEventSchema>;
+export type UpdateCalendarEventInput = z.infer<typeof UpdateCalendarEventSchema>;
+export type CreateScheduleBlockInput = z.infer<typeof CreateScheduleBlockSchema>;
+export type UpdateScheduleBlockInput = z.infer<typeof UpdateScheduleBlockSchema>;
+export type CreateScheduledTaskInput = z.infer<typeof CreateScheduledTaskSchema>;
+export type CalendarConflict = { kind: 'event' | 'block'; id: string; title: string; startAt: string; endAt: string; version: number };
+export interface CalendarEventDto extends CalendarRange { id: string; title: string; location: string; note: string; externalUrl: string | null; version: number; preparationTasks: { id: string; title: string }[] }
+export interface CalendarBlockDto extends ScheduleBlockDto { taskId: string; title: string; taskVersion: number; status: 'confirmed' | 'canceled' }
+export interface CalendarItem { kind: 'event' | 'block' | 'milestone'; resourceId: string; title: string; timezone: string; startAt?: string; endAt?: string; date?: string; taskId?: string; version: number }
+
+export const RescheduleTaskSchema = ExpectedVersionSchema.extend({ scope: z.enum(['deadline', 'blocks', 'both']), due: TaskDueSchema.optional(), blocks: z.array(CalendarRangeSchema.extend({ id: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict()).min(1).max(50).optional(), ...ConflictConfirmationSchema.shape }).strict();

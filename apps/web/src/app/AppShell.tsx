@@ -40,7 +40,7 @@ export function AppShell({ user, timezone, route, pathname, onLogout, loggingOut
   const [panel, setPanel] = useState<'search' | 'notifications' | 'navigation' | null>(null);
   const content = useRef<HTMLElement>(null);
   const pageTitle = text.pageLabels[route.page];
-  const title = route.page === 'settings' ? text.sectionLabels[route.section] : 'resourceId' in route && route.resourceId ? route.page === 'tasks' ? text.taskDetail : text.submissionDetail : pageTitle;
+  const title = route.page === 'settings' ? text.sectionLabels[route.section] : 'resourceId' in route && route.resourceId ? route.page === 'tasks' ? text.taskDetail : route.page === 'calendar' ? text.pageLabels.calendar : text.submissionDetail : pageTitle;
   useEffect(() => {
     document.title = `${text.brand} · ${title}`;
     content.current?.focus({ preventScroll: true });

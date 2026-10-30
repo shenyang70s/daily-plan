@@ -5,7 +5,7 @@ import { ApiError, apiRequest } from '../../lib/api-client';
 import { resourceKey } from '../../app/query-client';
 import { Link, navigate } from '../../app/router';
 import { EmptyState } from '../../components/EmptyState';
-import { text, tasksText as t } from '../../locales/zh-CN';
+import { text, calendarText, tasksText as t } from '../../locales/zh-CN';
 import { TaskEditor } from './TaskEditor';
 import { TaskActions } from './TaskActions';
 export function TaskDetailPanel({ userId, timezone, id }: { userId: string; timezone: string; id: string }) {
@@ -15,6 +15,6 @@ export function TaskDetailPanel({ userId, timezone, id }: { userId: string; time
   return <>
     <Link href="/tasks" className="back-link">← {t.back}</Link>
     <div className="page-heading"><h1>{text.taskDetail}</h1></div>
-    {task.isPending ? <p role="status">{t.detailLoading}</p> : task.isError ? task.error instanceof ApiError && task.error.status === 404 ? <EmptyState title={t.notFound} description={t.notFoundHelp} /> : <div role="alert"><p className="error">{task.error.message}</p><button type="button" onClick={() => void refresh()}>{t.retry}</button></div> : <div className="task-detail-panel"><TaskEditor key={`${id}:${revision}`} task={task.data} userId={userId} timezone={timezone} onSaved={() => setRevision(current => current + 1)} onRefresh={() => void refresh()} /><TaskActions task={task.data} userId={userId} onDeleted={() => navigate('/tasks')} onChanged={() => setRevision(current => current + 1)} onRefresh={() => void refresh()} /></div>}
+    {task.isPending ? <p role="status">{t.detailLoading}</p> : task.isError ? task.error instanceof ApiError && task.error.status === 404 ? <EmptyState title={t.notFound} description={t.notFoundHelp} /> : <div role="alert"><p className="error">{task.error.message}</p><button type="button" onClick={() => void refresh()}>{t.retry}</button></div> : <div className="task-detail-panel"><TaskEditor key={`${id}:${revision}`} task={task.data} userId={userId} timezone={timezone} onSaved={() => setRevision(current => current + 1)} onRefresh={() => void refresh()} /><div className="task-schedule-blocks"><h2>{calendarText.block}</h2>{task.data.scheduleBlocks.map(block => <Link key={block.id} href={`/calendar/blocks/${block.id}`}>{new Intl.DateTimeFormat('zh-CN', { timeZone: timezone, dateStyle: 'short', timeStyle: 'medium' }).format(new Date(block.startAt))} — {new Intl.DateTimeFormat('zh-CN', { timeZone: timezone, dateStyle: 'short', timeStyle: 'medium' }).format(new Date(block.endAt))} →</Link>)}</div><TaskActions task={task.data} userId={userId} onDeleted={() => navigate('/tasks')} onChanged={() => setRevision(current => current + 1)} onRefresh={() => void refresh()} /></div>}
   </>;
 }

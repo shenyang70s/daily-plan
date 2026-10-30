@@ -17,7 +17,7 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、课题与偏好设置',contextNext:'接下来',contextUpcoming:'日历、工作块与投稿',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、课题、日历与偏好设置',contextNext:'接下来',contextUpcoming:'投稿、提醒与 AI',
  notificationSettingsNote:'这里保存提醒偏好；服务端提醒派发尚未开放。',quiet:'静音模式',aiSettingsNote:'这里保存 AI 使用偏好；真实模型服务尚未接入。',proactive:'主动建议',
 };
 
@@ -37,4 +37,18 @@ export const tasksText = {
   remove: '删除任务', confirmRemove: '确认删除任务', removeHelp: '删除后任务将从列表中隐藏，可在 24 小时内恢复。', cancel: '取消', removing: '正在删除…', removed: '任务已删除', undo: '撤销', restored: '任务已恢复',
   projectManage: '管理课题', projectName: '课题名称', projectCreate: '创建课题', projectCreated: '课题已创建', projectRename: '重命名', projectSave: '保存名称', projectSaved: '课题已更新', projectRemove: '删除课题', projectRemoved: '课题已删除', projectRemoveHelp: '删除课题只会移除任务关联，不会删除任务。', projectEmpty: '还没有课题', projectEmptyHelp: '课题用于整理研究方向；任务也可以不关联课题。',
   detail: '查看详情', completedGroup: '今天已完成', overdueGroup: '逾期任务', dueGroup: '今天的任务', projectUnavailable: '课题列表加载失败', filterLabel: '任务筛选', confirm: '确认',
+};
+
+export const calendarText = {
+  title: '日历', day: '日', week: '周', month: '月', today: '今天', previous: '上一段日期', next: '下一段日期', chooseDate: '查看日期', timezone: '显示时区',
+  loading: '正在加载日历…', failed: '日历加载失败', retry: '重试', noItems: '当前日期范围没有安排', slotHelp: '点击具体时段记录任务或固定事件。截止日期与工作块分别保存。',
+  newSchedule: '安排工作', editEvent: '事件详情', editBlock: '工作块详情', mode: '安排类型', newTask: '新建任务并安排', existingTask: '安排已有任务', fixedEvent: '固定事件 / 会议',
+  taskTitle: '任务标题', eventTitle: '事件名称', start: '开始时间', end: '结束时间', sourceTimezone: '安排时区', location: '地点', link: '会议链接', note: '备注', preparation: '准备任务标题（可选）', preparationHelp: '填写后会同时创建一项关联的会议准备任务。删除会议不会删除该任务。',
+  due: '任务截止日期（可选）', dueHelp: '留空表示无截止日期。这里的工作时间不会自动成为截止时间。', chooseTask: '选择任务', tasksLoading: '正在加载可安排任务…', noTasks: '暂无可安排任务，请先记录任务或选择新建任务。',
+  save: '保存安排', saving: '正在保存…', saved: '安排已保存', invalidTime: '请检查起止时间和时区。不存在或重复的夏令时时刻不能自动确定；重复时刻可填写有效偏移。',
+  offsetHelp: '夏令时重复时刻的偏移', startOffset: '开始时刻偏移（可选）', endOffset: '结束时刻偏移（可选）', offsetExample: '例如 -07:00',
+  conflictTitle: '这个时段已有安排', conflictHelp: '保存会保留重叠安排，不会移动已有事件或工作块。请核对本次起止时间和以下冲突。', conflictAccept: '我已核对，确认保留这些重叠安排', conflictSave: '确认保存重叠安排', backToEdit: '返回修改',
+  removeEvent: '删除事件', cancelBlock: '取消工作块', removeHelp: '事件将从日历删除，关联的准备任务会保留。', cancelHelp: '只取消这段工作时间，不修改或删除任务及其截止时间。', confirm: '确认', cancel: '取消', removed: '安排已移除', refresh: '刷新最新版本',
+  taskLink: '打开任务详情', preparationTasks: '关联的准备任务', notFound: '找不到这项安排', notFoundHelp: '安排可能已被移除，或当前账户没有访问权限。',
+  allDay: '日期型期限', milestone: '截止', event: '事件', block: '工作块', continue: '跨日', createSlot: '创建安排', weekDays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
 };

@@ -17,7 +17,7 @@ export function TaskActions({ task, userId, compact = false, onDeleted, onChange
         const restoreKey = crypto.randomUUID();
         toast(t.removed, { label: t.undo, success: t.restored, run: async () => {
           await writeApi(`/tasks/${result.id}/restore`, 'POST', { expectedVersion: result.version }, restoreKey);
-          await Promise.all(['tasks', 'task'].map(resource => client.invalidateQueries({ queryKey: [resource, userId] })));
+          await Promise.all(['tasks', 'task', 'calendar'].map(resource => client.invalidateQueries({ queryKey: [resource, userId] })));
         } });
         onDeleted?.();
       } else { toast(result.archivedAt ? t.archiveDone : result.status === 'done' ? t.completed : t.reopened); onChanged?.(); }

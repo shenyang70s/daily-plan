@@ -2,7 +2,7 @@ export const primaryPages = ['today', 'inbox', 'tasks', 'calendar', 'submissions
 export const settingsSections = ['general', 'notifications', 'ai', 'integrations', 'account'] as const;
 export type PrimaryPage = typeof primaryPages[number];
 export type SettingsSection = typeof settingsSections[number];
-export type Route = { page: PrimaryPage; resourceId?: string }
+export type Route = { page: PrimaryPage; resourceId?: string; resourceKind?: 'event' | 'block' }
   | { page: 'settings'; section: SettingsSection }
   | { page: 'notFound' };
 
@@ -11,6 +11,14 @@ export function resolveRoute(pathname: string): Route {
   if (path === '/') return { page: 'today' };
   for (const page of primaryPages) {
     if (path === `/${page}`) return { page };
+  }
+  const calendar = /^\/calendar\/(events|blocks)\/([^/]+)$/.exec(path);
+  if (calendar) {
+    try {
+      const resourceId = decodeURIComponent(calendar[2]!);
+      if (resourceId.includes('/')) return { page: 'notFound' };
+      return { page: 'calendar', resourceId, resourceKind: calendar[1] === 'events' ? 'event' : 'block' };
+    } catch { return { page: 'notFound' }; }
   }
   const detail = /^\/(tasks|submissions)\/([^/]+)$/.exec(path);
   if (detail) {

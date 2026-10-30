@@ -4,9 +4,9 @@
 
 ## 当前实现状态
 
-已实现工程入口、SQLite 迁移与短事务，以及用户名/口令登录、12 小时会话、退出、CSRF 校验和用户偏好设置。正式 Web 已接入应用壳层、侧栏导航、页面深链、页面导航搜索和分组偏好设置；今天、收集箱、全部任务和任务详情均使用真实 API，支持任务与课题管理。日历编辑、投稿、后台提醒、真实 AI 和 CCF-DDL 导入仍待实现。
+已实现工程入口、SQLite 迁移与短事务，以及用户名/口令登录、12 小时会话、退出、CSRF 校验和用户偏好设置。正式 Web 的今天、收集箱、全部任务、任务详情和日历均使用真实 API，支持任务、课题、固定事件、工作块及关联准备任务。投稿、后台提醒、真实 AI 和 CCF-DDL 导入仍待实现。
 
-项目类型检查与前后端构建通过。正式 better-sqlite3 驱动和迁移、认证服务及 NestJS HTTP 请求测试已验证。本地浏览器已验证登录、偏好持久化、退出、切换账户、会话过期、导航与深链刷新、弹窗键盘操作、任务与课题完整流程，以及 1440、1180、900、600 px 布局。任务检查覆盖用户隔离、版本冲突、幂等重试和重启后恢复。Staging 尚未验收，PT/IANA 地区时区的本地时间归一化仍待实现。
+项目类型检查与前后端构建通过。正式 better-sqlite3 驱动和迁移、认证服务及 NestJS HTTP 请求测试已验证。本地浏览器已验证登录、设置、任务/课题流程、日历日周月切换、安排创建与编辑、冲突重新确认、深链刷新、时区展示和夏令时处理，以及 1440、1180、900、600 px 布局。定向检查覆盖用户隔离、版本冲突、幂等、事务回滚和重启后恢复。Staging 尚未验收。
 
 原高保真原型保留在 `prototype/`，与正式应用的数据互不混用。
 
@@ -17,20 +17,21 @@
 ```mermaid
 flowchart TB
   browser["用户浏览器"]
-  web["Web 前端 · apps/web<br/>React / Vite<br/>今天、收集箱、任务、课题与设置"]
-  api["API 服务 · apps/api<br/>NestJS<br/>认证、CSRF、任务与课题 CRUD"]
+  web["Web 前端 · apps/web<br/>React / Vite<br/>任务、课题、日历与设置"]
+  api["API 服务 · apps/api<br/>NestJS<br/>认证、任务、事件、工作块与冲突确认"]
   contracts["接口契约 · packages/contracts<br/>Zod 输入校验与 DTO"]
   persistence["持久化层 · packages/persistence<br/>better-sqlite3、迁移与短事务"]
   db[("SQLite<br/>用户、会话、偏好及业务表结构")]
-  domain["领域规则 · packages/domain<br/>任务状态转换已接入<br/>日期与日历冲突规则已建立"]
-  planned["待实现的功能模块<br/>日历、投稿与后台提醒<br/>AI 与 CCF-DDL 导入"]
+  domain["领域规则 · packages/domain<br/>任务状态、日期、时区转换<br/>半开区间冲突检查"]
+  planned["待实现的功能模块<br/>投稿与后台提醒<br/>AI 与 CCF-DDL 导入"]
 
   browser --> web
   web -->|"HTTP /api/v1 · 会话 Cookie"| api
   api -->|"输入校验"| contracts
   api --> persistence
   persistence --> db
-  api -->|"状态转换校验"| domain
+  api -->|"状态、时间与冲突校验"| domain
+  web -->|"本地时刻严格转换"| domain
   api -.-> planned
 ```
 
@@ -42,14 +43,22 @@ flowchart TB
 - 今天显示用户时区下今天到期、逾期、有当天工作块的任务，以及今天已完成的任务。设置截止时间不会自动安排工作块。
 - 全部任务支持关键词、类型、状态、优先级、课题、截止日期和归档筛选，并按游标分页加载。
 - 支持完成、重新打开、归档和确认删除；删除后可通过提示条撤销，服务端保留 24 小时恢复期限。版本冲突时保留编辑内容，由用户选择刷新最新版本。
-- 课题支持新增、重命名和删除；删除课题只移除任务关联，不删除任务。日历中的工作块编辑将在后续阶段开放。
+- 课题支持新增、重命名和删除；删除课题只移除任务关联，不删除任务。
+
+## 日历工作流
+
+- 支持日、周、月视图；点击具体日期或时段创建新任务与工作块、安排已有任务，或创建固定事件。日历顶部不提供重复的添加入口。
+- 事件可同时创建关联的会议准备任务；任务和工作块、事件和准备任务分别在同一短事务中提交，失败不留下半条记录。
+- 半开区间 `[start, end)` 首尾相接不冲突。重叠时列出当前冲突，必须明确确认；候选时间或冲突记录版本变化后重新确认。
+- 事件与工作块支持详情深链、版本校验、编辑及移除。取消工作块不修改任务期限；删除事件保留准备任务。任务详情提供关联工作块的日历链接。
+- 日期型期限作为日期展示；精确时刻按用户时区展示。本地时间转换使用 Temporal，夏令时缺失时刻会拒绝保存，重复时刻需提供有效偏移。
 
 ## 目录
 
-- `apps/web/`：React/Vite 应用壳层、任务与课题页面、登录与偏好设置。
-- `apps/api/`：NestJS 认证、任务与课题 API、数据库生命周期及健康检查。
+- `apps/web/`：React/Vite 应用壳层、任务/课题/日历页面、登录与偏好设置。
+- `apps/api/`：NestJS 认证、任务、课题、事件和工作块 API，以及健康检查。
 - `packages/contracts/`：Zod 任务输入与基础响应契约。
-- `packages/domain/`：任务状态、纯日期、固定偏移时间及日历区间规则。
+- `packages/domain/`：任务状态、纯日期、Temporal 时区转换及日历区间规则。
 - `packages/persistence/`：驱动无关的 SQLite 最小连接接口、迁移和短事务。正式启动注入 better-sqlite3。
 - `infra/migrations/`：用户、会话、任务、项目、事件、工作块、投稿、提醒、Outbox 和通知的初始表结构。
 - `scripts/migrate.ts`：使用正式驱动运行迁移。
@@ -83,11 +92,11 @@ corepack pnpm --filter @research/web test
 corepack pnpm test:integration
 ```
 
-`test:foundation` 使用 Node 自带 TypeScript 类型擦除与 `node:sqlite`，在临时文件中运行真实 SQLite 行为测试；不会写入应用数据库。`node:sqlite` 在 Node 22 中的实验性提示属于运行时提示。Web 的 `test` 验证路由匹配、API 错误、CSRF、会话失效及请求取消。基础用例不代替正式驱动验证；`test:integration` 会构建共享包与 API，并以 better-sqlite3 临时库验证持久化、认证、任务/课题 CRUD、所有权、版本、幂等、今天视图、日期与工作块分离、删除恢复、生产页面路由回退和账号创建 CLI。HTTP 测试不绑定网络端口。
+`test:foundation` 使用 Node 自带 TypeScript 类型擦除与 `node:sqlite`，在临时文件中运行真实 SQLite 行为测试；不会写入应用数据库。`node:sqlite` 在 Node 22 中的实验性提示属于运行时提示。Web 的 `test` 验证路由、API 错误与冲突详情、CSRF、会话失效及请求取消。基础用例不代替正式驱动验证；`test:integration` 构建共享包与 API，验证 Temporal 时区转换，并以 better-sqlite3 临时库验证认证、任务/课题/日历 CRUD、所有权、版本、幂等、事务、冲突确认、日期与工作块分离、删除恢复、生产页面路由回退和账号创建 CLI。HTTP 测试不绑定网络端口。
 
 用例验证任务状态转换、逾期判断、有效日历日期、AoE 秒精度、半开区间冲突，以及 SQLite 迁移重入/校验、事务回滚、异步事务拒绝、外键、跨用户关联、期限互斥与有界写锁等待。
 
-PT / IANA 地区时区的归一化尚未实现；固定偏移工具会拒绝 PT，不将其误判为 UTC−8。后续按计划接入时间库并验证夏令时歧义。
+地区时区的本地时间转换采用 [Temporal polyfill](https://github.com/js-temporal/temporal-polyfill)，支持 PT 到 `America/Los_Angeles`、AoE 到 `Etc/GMT+12` 的明确映射并保留秒精度。单独的固定偏移工具仍拒绝 PT，避免把地区时区误当成固定 UTC−8。
 
 ## 数据与配置
 

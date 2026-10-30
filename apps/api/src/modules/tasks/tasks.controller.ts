@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Inject, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { CreateTaskSchema, UpdateTaskSchema, TaskListSchema, ExpectedVersionSchema, RescheduleTaskSchema } from '@research/contracts';
+import { CreateTaskSchema, UpdateTaskSchema, TaskListSchema, ExpectedVersionSchema } from '@research/contracts';
 import { SessionGuard } from '../identity/session.guard.js';
 import type { AuthRequest } from '../identity/session.guard.js';
 import { AppError } from '../../common/app-error.js';
@@ -23,5 +23,4 @@ export class TasksController {
   @Post(':id/archive') @HttpCode(200) archive(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: unknown, @Headers('idempotency-key') key: string = '') { return this.tasks.archive(req.sessionContext!, id, parseInput(ExpectedVersionSchema, body), key); }
   @Delete(':id') remove(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: unknown, @Headers('idempotency-key') key: string = '') { return this.tasks.remove(req.sessionContext!, id, parseInput(ExpectedVersionSchema, body), key); }
   @Post(':id/restore') @HttpCode(200) restore(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: unknown, @Headers('idempotency-key') key: string = '') { return this.tasks.restore(req.sessionContext!, id, parseInput(ExpectedVersionSchema, body), key); }
-  @Post(':id/reschedule') @HttpCode(200) reschedule(@Req() req: AuthRequest, @Param('id') id: string, @Body() body: unknown, @Headers('idempotency-key') key: string = '') { return this.tasks.reschedule(req.sessionContext!, id, parseInput(RescheduleTaskSchema, body), key); }
 }

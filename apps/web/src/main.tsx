@@ -7,4 +7,5 @@ import './styles/tokens.css';
 import './styles.css';
 import './styles/shell.css';
 import './styles/tasks.css';
+import './styles/calendar.css';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></React.StrictMode>);

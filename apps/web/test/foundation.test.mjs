@@ -56,3 +56,14 @@ test('non-JSON errors remain HTTP errors and aborted requests stay aborted', asy
   globalThis.fetch = async () => { throw new DOMException('Aborted', 'AbortError'); };
   await assert.rejects(apiRequest('/me'), error => error.name === 'AbortError');
 });
+
+test('calendar event/block deep links retain their resource type', () => {
+  assert.deepEqual(resolveRoute('/calendar/events/event-id'), { page: 'calendar', resourceId: 'event-id', resourceKind: 'event' });
+  assert.deepEqual(resolveRoute('/calendar/blocks/block-id'), { page: 'calendar', resourceId: 'block-id', resourceKind: 'block' });
+  assert.deepEqual(resolveRoute('/calendar/events/%2Fhidden'), { page: 'notFound' });
+});
+
+test('API schedule conflicts retain confirmation details', async () => {
+  globalThis.fetch = async () => Response.json({ code: 'SCHEDULE_CONFLICT', message: '有冲突', details: { confirmationToken: 'token', conflicts: [{ id: 'event' }] } }, { status: 409 });
+  await assert.rejects(apiRequest('/schedule-blocks', { method: 'POST', body: '{}' }), error => error.details.confirmationToken === 'token' && error.details.conflicts[0].id === 'event');
+});

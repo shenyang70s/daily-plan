@@ -15,7 +15,7 @@
     "test:foundation": "node --experimental-strip-types --test packages/domain/test/*.test.mjs packages/persistence/test/*.test.mjs",
     "build:shared": "corepack pnpm --filter @research/domain build && corepack pnpm --filter @research/contracts build && corepack pnpm --filter @research/persistence build",
     "account:create": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --env-file-if-exists=.env --import tsx scripts/create-account.ts",
-    "test:integration": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --test packages/persistence/test/integration/*.test.mjs apps/api/test/integration/*.test.mjs && bash scripts/test/account-cli.sh"
+    "test:integration": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --test packages/domain/test/integration/*.test.mjs packages/persistence/test/integration/*.test.mjs apps/api/test/integration/*.test.mjs && bash scripts/test/account-cli.sh"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

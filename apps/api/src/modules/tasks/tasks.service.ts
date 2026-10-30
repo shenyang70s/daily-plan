@@ -31,7 +31,7 @@ export class TasksService {
   private version(row: Row, expected: number): void {
     if (row.version !== expected) throw new AppError(409, 'VERSION_CONFLICT', '记录已被更新，请刷新后再试');
   }
-  private dueColumns(due: TaskDue): Record<string, SqlValue> {
+  dueColumns(due: TaskDue): Record<string, SqlValue> {
     if (due?.kind === 'instant') {
       try { new Intl.DateTimeFormat('en', { timeZone: due.timezone }).format(); }
       catch { throw new AppError(400, 'INVALID_TIMEZONE', '请提供有效的 IANA 时区'); }
@@ -72,12 +72,14 @@ export class TasksService {
     return paginate(items, input.limit, input.cursor);
   }
   create(ctx: SessionContext, input: CreateTaskInput, key: string): TaskDto {
-    return writeResource(this.db, ctx.userId, 'tasks:create', key, input, tx => {
-      if (input.projectId) this.requireProject(tx, ctx.userId, input.projectId);
-      const now = this.now(), id = randomUUID();
-      insertTask(tx, { id, user_id: ctx.userId, title: input.title, type: input.type, status: input.due ? 'todo' : 'inbox', priority: input.priority, ...this.dueColumns(input.due), duration_minutes: input.durationMinutes, project_id: input.projectId, note: input.note, external_url: input.externalUrl, created_at: now, updated_at: now });
-      return this.dto(this.requireTask(tx, ctx.userId, id), tx, []);
-    });
+    return writeResource(this.db, ctx.userId, 'tasks:create', key, input, tx => this.createInTransaction(tx, ctx, input));
+  }
+  getInTransaction(tx: Transaction, ctx: SessionContext, id: string): TaskDto { return this.dto(this.requireTask(tx, ctx.userId, id), tx); }
+  createInTransaction(tx: Transaction, ctx: SessionContext, input: CreateTaskInput, organized = false): TaskDto {
+    if (input.projectId) this.requireProject(tx, ctx.userId, input.projectId);
+    const now = this.now(), id = randomUUID();
+    insertTask(tx, { id, user_id: ctx.userId, title: input.title, type: input.type, status: organized || input.due ? 'todo' : 'inbox', priority: input.priority, ...this.dueColumns(input.due), duration_minutes: input.durationMinutes, project_id: input.projectId, note: input.note, external_url: input.externalUrl, created_at: now, updated_at: now });
+    return this.dto(this.requireTask(tx, ctx.userId, id), tx, []);
   }
   update(ctx: SessionContext, id: string, input: UpdateTaskInput, key: string): TaskDto {
     return this.change(ctx, id, 'update', input, key, (row, tx) => {
@@ -127,6 +129,7 @@ export class TasksService {
   reschedule(ctx: SessionContext, id: string, input: RescheduleTaskInput, key: string) {
     return this.change(ctx, id, 'reschedule', input, key, () => {
       if (input.scope !== 'deadline') throw new AppError(422, 'SCHEDULE_BLOCKS_UNAVAILABLE', '工作块调整将在日历功能开放后接入');
+      if (input.due === undefined) throw new AppError(400, 'DUE_REQUIRED', '请明确提供截止时间或清除期限');
       return this.dueColumns(input.due);
     });
   }

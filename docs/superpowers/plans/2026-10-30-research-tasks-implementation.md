@@ -85,12 +85,13 @@ tests/e2e/                # 登录后的关键用户闭环
 
 - 依赖已由用户安装，pnpm 10.11.0 和锁文件可用，根仓库 origin 为 daily-plan。当前沙箱仍无法创建 Git 分支（ref 写入失败），未创建嵌套仓库或替代 Git 元数据，未提交/推送。
 - Task 1：工程入口、迁移命令、环境示例、完整类型检查和前后端构建已验证。沙箱禁止监听 TCP 端口；实际 NestJS health/readiness 路由通过内存 HTTP 请求验证，本机浏览器和 Staging 仍待验收。
-- Task 2：SQLite 迁移、短事务、外键/WAL、有界写锁、正式 better-sqlite3 驱动均已验证。Task 3 的用户名/口令迁移采用新增 SQL，不修改历史 migration。PT/IANA 夏令时归一化适配仍待完成，固定偏移工具会拒绝未支持的 PT。
+- Task 2：SQLite 迁移、短事务、外键/WAL、有界写锁、正式 better-sqlite3 驱动均已验证。Task 3 的用户名/口令迁移采用新增 SQL，不修改历史 migration。地区时区转换适配在 Task 6 接入 Temporal；已验证 PT/AoE、秒精度、夏令时缺失/重复时刻及明确偏移。固定偏移工具继续拒绝 PT。
 - Task 3：用户名/口令登录、退出、12 小时会话、Cookie、CSRF、失败限流、用户偏好 API、账号创建 CLI 和 React 登录/偏好页面已有实现。真实 SQLite 服务测试及 NestJS 路由测试通过；浏览器流程仍待验收，不标记 Staging 完成。
 - 基础检查为 `npm run test:foundation`；正式驱动/认证集成为 `corepack pnpm test:integration`。测试使用隔离临时库，不创建演示生产账号。
 - Task 4：应用壳层、正式路由、页面导航搜索、通知入口、分组设置、模态弹窗和提示条已实现；本地真实浏览器已验证登录与偏好、导航和历史、生产深链刷新、焦点与键盘，以及 1440、1180、900、600 px 布局。业务通知数据和 Staging 仍待接入/验收。
 - Task 5：任务与课题 CRUD、Today/Inbox/Tasks、详情编辑、筛选与游标分页、完成/重新打开/归档、软删除确认和 24 小时恢复已实现。写入在短事务中校验所有权、版本和幂等键；课题删除保留任务并递增受影响任务版本。Today 采用用户时区，包含未排程但今天到期的任务；改期限不创建或移动工作块。共享包、API 与 Web 构建通过；任务 HTTP 集成和既有认证/页面回退检查通过，Web 的 5 项检查通过。隔离 SQLite 与真实浏览器验证了完整任务/课题流程、刷新恢复、筛选、409 保留输入、删除撤销、响应丢失后幂等重试、账户隔离与四种窗口尺寸。未使用模拟业务数据替代正式实现。
-- Task 6–14：未开始；日历/工作块编辑、投稿、通知调度和 AI 功能仍待接入。地区时区的本地时间归一化与 Staging 验收继续保持待完成。
+- Task 6：日/周/月日历、日期/精确期限读模型、固定事件及关联准备任务、已有任务工作块、新任务与工作块原子创建、编辑/取消和详情深链已实现。写入事务内检查冲突，签名确认凭据绑定候选时间、当前用户和冲突版本；旧确认拒绝且无部分写入。工作块与期限分别保存，Task reschedule 已支持 deadline/blocks/both。Temporal 0.5.1 已锁定，日历按需加载。共享包/API/Web 构建、地区时区 2 项、原领域 5 项、Web 7 项与日历/任务/认证/页面路由 4 项定向检查通过。真实浏览器验证创建、准备任务原子性、相接不冲突、变化后的冲突重新确认、日周月、深链刷新、工作块编辑/取消不改期限、切换时区、夏令时拒绝及明确偏移、跨用户隔离和四种尺寸；截图检查后修复已占时段新增入口与桌面周日列裁切。
+- Task 7–14：未开始；投稿、提醒和 AI 仍待接入，Staging 验收保持待完成。
 
 ## 阶段与验收里程碑
 
@@ -165,13 +166,13 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 6：日历事件、工作块与延期
 
-**Files:** 创建 `apps/api/src/modules/calendar/{calendar.controller,calendar.service,schedule-blocks.controller}.ts`、`packages/persistence/src/calendar.repository.ts`、`apps/web/src/features/calendar/{CalendarPage,CalendarGrid,EventDetailPanel}.tsx`；测试 `apps/api/test/integration/calendar.spec.ts`、`packages/domain/src/calendar-conflict.spec.ts`。
+**Files:** 创建 `apps/api/src/modules/calendar/{calendar.controller,calendar.service,calendar.module,schedule-blocks.controller}.ts`、`packages/persistence/src/calendar.repository.ts`、`packages/domain/src/calendar-time.ts`、`apps/web/src/features/calendar/{CalendarPage,CalendarGrid,CalendarForm,EventDetailPanel}.tsx`；测试 `apps/api/test/integration/calendar.test.mjs`、`packages/domain/test/integration/calendar-time.test.mjs`。沿用 `packages/domain/test/task-rules.test.mjs` 中的半开区间检查。
 
 **Interfaces:** 第 8.3 章 API；`CalendarItem={kind:'event'|'block'|'milestone';resourceId:string;startAt?:string;endAt?:string;date?:LocalDate;timezone:string}`。`findConflicts(candidate:TimeRange,existing:TimeRange[]):Conflict[]` 采用半开区间 `[start,end)`，前后相接不冲突。
 
-- [ ] 为工作块与固定会议重叠、跨日、边界相接、只移动 block 不改变 due、跨用户查询编写并运行失败用例。
-- [ ] 实现日/周/月读模型、会议及关联准备任务；点击时段创建带日期/时间的 Task + block，事务内完成。仅设置 due 不创建 block。冲突必须提示并获得明确确认。
-- [ ] 运行 `pnpm --filter @research/domain test --runInBand src/calendar-conflict.spec.ts` 和 `pnpm --filter @research/api test:integration --runInBand test/integration/calendar.spec.ts`；浏览器验收点击时段、详情深链和无顶部添加按钮。
+- [x] 为工作块与固定会议重叠、跨日、边界相接、只移动 block 不改变 due、跨用户查询编写并运行失败用例。
+- [x] 实现日/周/月读模型、会议及关联准备任务；点击时段创建带日期/时间的 Task + block，事务内完成。仅设置 due 不创建 block。冲突必须提示并获得明确确认；重新提交时检查当前冲突版本，不复用过期快照。
+- [x] 运行共享包/API/Web 构建，`node --test packages/domain/test/integration/calendar-time.test.mjs`、`node --experimental-strip-types --test packages/domain/test/task-rules.test.mjs`、`corepack pnpm --filter @research/web test` 和 API 日历/任务/认证/页面回退定向检查；真实浏览器验证点击时段、详情深链、无顶部添加按钮、时区/夏令时及四种尺寸布局。1440/1180 px 下七天完整显示，900/600 px 周网格在容器内滚动。
 - [ ] 提交：`feat: add calendar events and schedule blocks`。
 
 ## Task 7：投稿阶段、节点和时区展示
