@@ -4,9 +4,9 @@
 
 ## 当前实现状态
 
-已实现工程入口、SQLite 迁移与短事务，以及用户名/口令登录、12 小时会话、退出、CSRF 校验和用户偏好设置。正式 Web 的今天、收集箱、全部任务、任务详情和日历均使用真实 API，支持任务、课题、固定事件、工作块及关联准备任务。投稿、后台提醒、真实 AI 和 CCF-DDL 导入仍待实现。
+已实现工程入口、SQLite 迁移与短事务，以及用户名/口令登录、12 小时会话、退出、CSRF 校验和用户偏好设置。正式 Web 的任务、课题、日历和投稿页面均使用真实 API，支持固定事件、工作块、准备任务、投稿阶段与独立截止节点。后台提醒、真实 AI 和 CCF-DDL 导入仍待实现。
 
-项目类型检查与前后端构建通过。正式 better-sqlite3 驱动和迁移、认证服务及 NestJS HTTP 请求测试已验证。本地浏览器已验证登录、设置、任务/课题流程、日历日周月切换、安排创建与编辑、冲突重新确认、深链刷新、时区展示和夏令时处理，以及 1440、1180、900、600 px 布局。定向检查覆盖用户隔离、版本冲突、幂等、事务回滚和重启后恢复。Staging 尚未验收。
+项目类型检查与前后端构建通过。正式 better-sqlite3 驱动和迁移、认证服务及 NestJS HTTP 请求测试已验证。本地浏览器已验证任务/课题/日历/投稿流程、节点修改确认、来源与双时区展示、归档恢复、深链刷新、版本冲突保留输入，以及 1440、1180、900、600 px 布局。定向检查覆盖用户隔离、幂等、事务回滚、夏令时、纯日期与秒精度、阶段与期限分离和重启后恢复。Staging 尚未验收。
 
 原高保真原型保留在 `prototype/`，与正式应用的数据互不混用。
 
@@ -17,21 +17,21 @@
 ```mermaid
 flowchart TB
   browser["用户浏览器"]
-  web["Web 前端 · apps/web<br/>React / Vite<br/>任务、课题、日历与设置"]
-  api["API 服务 · apps/api<br/>NestJS<br/>认证、任务、事件、工作块与冲突确认"]
+  web["Web 前端 · apps/web<br/>React / Vite<br/>任务、日历、投稿与设置"]
+  api["API 服务 · apps/api<br/>NestJS<br/>认证、任务、日历、投稿与节点确认"]
   contracts["接口契约 · packages/contracts<br/>Zod 输入校验与 DTO"]
   persistence["持久化层 · packages/persistence<br/>better-sqlite3、迁移与短事务"]
   db[("SQLite<br/>用户、会话、偏好及业务表结构")]
-  domain["领域规则 · packages/domain<br/>任务状态、日期、时区转换<br/>半开区间冲突检查"]
-  planned["待实现的功能模块<br/>投稿与后台提醒<br/>AI 与 CCF-DDL 导入"]
+  domain["领域规则 · packages/domain<br/>任务状态、时区、冲突检查<br/>下一节点与统一截止时间格式化"]
+  planned["待实现的功能模块<br/>后台提醒与通知<br/>AI 与 CCF-DDL 导入"]
 
   browser --> web
   web -->|"HTTP /api/v1 · 会话 Cookie"| api
   api -->|"输入校验"| contracts
   api --> persistence
   persistence --> db
-  api -->|"状态、时间与冲突校验"| domain
-  web -->|"本地时刻严格转换"| domain
+  api -->|"状态、时间与节点规则"| domain
+  web -->|"时间转换、倒计时与展示"| domain
   api -.-> planned
 ```
 
@@ -53,12 +53,21 @@ flowchart TB
 - 事件与工作块支持详情深链、版本校验、编辑及移除。取消工作块不修改任务期限；删除事件保留准备任务。任务详情提供关联工作块的日历链接。
 - 日期型期限作为日期展示；精确时刻按用户时区展示。本地时间转换使用 Temporal，夏令时缺失时刻会拒绝保存，重复时刻需提供有效偏移。
 
+## 投稿工作流
+
+- 支持会议/期刊名称、年份、轮次、投稿阶段、投稿与草稿链接、下一步行动，以及关键词、阶段、年份和归档筛选。
+- 摘要、全文、答辩、结果通知、最终稿等节点独立保存。节点可为待定、纯日期或精确时刻；待定不会自动补成今天，阶段更新不会改写节点时间。
+- 保留原始来源时区、来源链接、官网链接和用户明确填写的核实时间。精确时刻同时显示来源时间与当前用户时区，保留秒和 UTC 偏移。
+- 修改已有节点先展示服务器标准化的前后对比，经明确确认和版本校验后写入。旧版本冲突保留输入，由用户选择刷新；删除节点另需确认。
+- 投稿列表与详情根据实际当前时间选择下一节点并显示倒计时，已过期节点显示“已截止”。投稿列表、详情和日历共用截止时间格式化规则，日历节点可跳转到对应投稿。
+- 归档投稿会保留节点与来源，并从正在跟进的列表和日历隐藏；可在已归档列表恢复。新增、修改、归档和删除均校验所有权、版本和幂等键。
+
 ## 目录
 
-- `apps/web/`：React/Vite 应用壳层、任务/课题/日历页面、登录与偏好设置。
-- `apps/api/`：NestJS 认证、任务、课题、事件和工作块 API，以及健康检查。
-- `packages/contracts/`：Zod 任务输入与基础响应契约。
-- `packages/domain/`：任务状态、纯日期、Temporal 时区转换及日历区间规则。
+- `apps/web/`：React/Vite 应用壳层、任务/课题/日历/投稿页面、登录与偏好设置。
+- `apps/api/`：NestJS 认证、任务、日历、投稿与节点 API，以及健康检查。
+- `packages/contracts/`：任务、日历、投稿 DTO 与 Zod 输入校验。
+- `packages/domain/`：任务状态、Temporal 时间转换、冲突检查、下一节点与截止时间格式化。
 - `packages/persistence/`：驱动无关的 SQLite 最小连接接口、迁移和短事务。正式启动注入 better-sqlite3。
 - `infra/migrations/`：用户、会话、任务、项目、事件、工作块、投稿、提醒、Outbox 和通知的初始表结构。
 - `scripts/migrate.ts`：使用正式驱动运行迁移。
@@ -92,7 +101,7 @@ corepack pnpm --filter @research/web test
 corepack pnpm test:integration
 ```
 
-`test:foundation` 使用 Node 自带 TypeScript 类型擦除与 `node:sqlite`，在临时文件中运行真实 SQLite 行为测试；不会写入应用数据库。`node:sqlite` 在 Node 22 中的实验性提示属于运行时提示。Web 的 `test` 验证路由、API 错误与冲突详情、CSRF、会话失效及请求取消。基础用例不代替正式驱动验证；`test:integration` 构建共享包与 API，验证 Temporal 时区转换，并以 better-sqlite3 临时库验证认证、任务/课题/日历 CRUD、所有权、版本、幂等、事务、冲突确认、日期与工作块分离、删除恢复、生产页面路由回退和账号创建 CLI。HTTP 测试不绑定网络端口。
+`test:foundation` 使用 Node 自带 TypeScript 类型擦除与 `node:sqlite`，在临时文件中运行真实 SQLite 行为测试；不会写入应用数据库。`node:sqlite` 在 Node 22 中的实验性提示属于运行时提示。Web 的 `test` 验证路由、API 错误与冲突详情、CSRF、会话失效及请求取消。基础用例不代替正式驱动验证；`test:integration` 构建共享包与 API，验证时区、下一节点与统一格式化，并以 better-sqlite3 临时库验证认证、任务/课题/日历/投稿 CRUD、节点确认与来源保留、所有权、版本、幂等、事务、冲突确认、日期与工作块分离、归档恢复、生产页面路由回退和账号创建 CLI。HTTP 测试不绑定网络端口。
 
 用例验证任务状态转换、逾期判断、有效日历日期、AoE 秒精度、半开区间冲突，以及 SQLite 迁移重入/校验、事务回滚、异步事务拒绝、外键、跨用户关联、期限互斥与有界写锁等待。
 

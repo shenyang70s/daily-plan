@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto';
 import { calendarDateAt, calendarTimezone, findConflicts } from '@research/domain';
-import { eventRecord, eventRecords, blockRecord, blockRecords, preparationTasks, insertCalendarRecord, updateCalendarRecord, taskRecord, taskRecords, updateTask } from '@research/persistence';
+import { eventRecord, eventRecords, blockRecord, blockRecords, preparationTasks, insertCalendarRecord, updateCalendarRecord, taskRecord, taskRecords, updateTask, calendarMilestones } from '@research/persistence';
 import type { Database, Transaction, Row } from '@research/persistence';
 import type { CalendarRange, CalendarQuery, CalendarItem, CalendarConflict, CalendarEventDto, CalendarBlockDto, CreateCalendarEventInput, UpdateCalendarEventInput, CreateScheduleBlockInput, UpdateScheduleBlockInput, CreateScheduledTaskInput, RescheduleTaskInput } from '@research/contracts';
 import type { SessionContext, IdentityService } from '../identity/identity.service.js';
@@ -81,6 +81,11 @@ export class CalendarService {
       if (task.archived_at != null || task.status === 'canceled') continue;
       if (task.due_date != null && String(task.due_date) >= firstDate && String(task.due_date) <= lastDate) items.push({ kind: 'milestone', resourceId: String(task.id), title: String(task.title), date: String(task.due_date), timezone, version: Number(task.version) });
       if (task.due_at != null && Number(task.due_at) >= from && Number(task.due_at) < to) items.push({ kind: 'milestone', resourceId: String(task.id), title: String(task.title), startAt: iso(task.due_at), timezone: String(task.timezone), version: Number(task.version) });
+    }
+    for (const milestone of calendarMilestones(this.db, ctx.userId)) {
+      const base = { kind: 'milestone' as const, resourceId: String(milestone.id), submissionId: String(milestone.submission_id), milestoneKind: milestone.kind as import('@research/contracts').MilestoneKind, sourceTimezone: milestone.source_timezone == null ? null : String(milestone.source_timezone), title: String(milestone.submission_name), version: Number(milestone.version) };
+      if (milestone.due_date != null && String(milestone.due_date) >= firstDate && String(milestone.due_date) <= lastDate) items.push({ ...base, date: String(milestone.due_date), timezone });
+      if (milestone.due_at != null && Number(milestone.due_at) >= from && Number(milestone.due_at) < to) items.push({ ...base, startAt: iso(milestone.due_at), timezone: String(milestone.timezone) });
     }
     return { items };
   }

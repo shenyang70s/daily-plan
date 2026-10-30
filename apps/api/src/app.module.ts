@@ -5,5 +5,6 @@ import {IdentityModule} from './modules/identity/identity.module.js';
 import {ApiErrorFilter} from './common/api-error.filter.js';
 import {TasksModule} from './modules/tasks/tasks.module.js';
 import {CalendarModule} from './modules/calendar/calendar.module.js';
-@Module({imports:[IdentityModule,TasksModule,CalendarModule],controllers:[HealthController],providers:[{provide:APP_FILTER,useClass:ApiErrorFilter}]})
+import {SubmissionsModule} from './modules/submissions/submissions.module.js';
+@Module({imports:[IdentityModule,TasksModule,CalendarModule,SubmissionsModule],controllers:[HealthController],providers:[{provide:APP_FILTER,useClass:ApiErrorFilter}]})
 export class AppModule {}

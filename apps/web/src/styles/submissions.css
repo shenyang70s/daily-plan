@@ -1,0 +1,74 @@
+.submission-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 28px; }
+.submission-filters input, .submission-filters select { height: 34px; font: inherit; font-size: 12px; color: var(--secondary); background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; }
+.submission-filters input[type=search] { width: 240px; }
+.submission-filters .submission-year-filter { width: 120px; }
+.submission-filters button { font-size: 11px; }
+.submission-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.submission-card { min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+.submission-card header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+.submission-card header > div { min-width: 0; }
+.submission-name { color: var(--text); font-size: 16px; font-weight: 600; line-height: 1.7; overflow-wrap: anywhere; }
+.submission-name:hover { color: var(--primary); }
+.submission-cycle { color: var(--secondary); font-size: 11px; margin: 8px 0 0; }
+.submission-stage { flex-shrink: 0; border-radius: 4px; color: #58718d; background: var(--subtle); padding: 4px 8px; font-size: 10px; }
+.stage-accepted { color: #148567; background: #eaf7f2; }
+.stage-submitted, .stage-under_review { color: var(--primary); background: var(--soft); }
+.stage-rejected, .stage-withdrawn { color: var(--secondary); }
+.submission-next-action { font-size: 12px; line-height: 1.8; color: var(--secondary); overflow-wrap: anywhere; margin: 20px 0; }
+.submission-card-next { padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--border); }
+.submission-card-next > span { color: var(--muted); font-size: 11px; }
+.submission-card-next h3 { font-size: 13px; margin: 12px 0; font-weight: 550; }
+.deadline-view p { margin: 10px 0; overflow-wrap: anywhere; line-height: 1.8; }
+.deadline-countdown { color: var(--primary); font-size: 12px; }
+.deadline-countdown.passed { color: var(--danger); }
+.deadline-local { color: var(--text); font-size: 13px; }
+.deadline-source { color: var(--secondary); font-size: 11px; }
+.deadline-view.compact .deadline-local { font-size: 12px; }
+.submission-editor label, .milestone-editor label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--secondary); margin-bottom: 20px; }
+.submission-editor input, .submission-editor select, .submission-editor textarea, .milestone-editor input, .milestone-editor select { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 6px; padding: 9px 10px; font: inherit; font-size: 13px; color: var(--text); background: #fff; }
+.submission-editor textarea { resize: vertical; line-height: 1.8; }
+.submission-detail-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.submission-detail-heading h1 { overflow-wrap: anywhere; }
+.submission-detail-heading > button { flex-shrink: 0; font-size: 12px; }
+.submission-detail-columns { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 24px; }
+.submission-metadata { min-width: 0; padding: 24px; border: 1px solid var(--border); border-radius: 10px; }
+.submission-next { padding: 24px; border: 1px solid var(--border); border-radius: 10px; align-self: start; }
+.submission-next h2 { color: var(--secondary); font-size: 12px; font-weight: 500; margin: 0 0 16px; }
+.submission-next h3 { font-size: 15px; font-weight: 550; margin: 0 0 16px; }
+.submission-archived-note { color: var(--secondary); background: var(--subtle); padding: 16px; border-radius: 7px; font-size: 12px; margin: 0 0 24px; }
+.milestones-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 40px 0 20px; }
+.milestones-heading h2 { font-size: 18px; margin: 0; }
+.milestones-heading button { font-size: 12px; }
+.milestone-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.milestone-card { min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
+.milestone-card header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.milestone-card h3 { font-size: 16px; font-weight: 550; margin: 0; }
+.milestone-card header > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.milestone-card button { font-size: 11px; padding-inline: 10px; }
+.milestone-source { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px 16px; font-size: 11px; margin: 20px 0 0; line-height: 1.8; }
+.milestone-source dt { color: var(--muted); }
+.milestone-source dd { margin: 0; overflow-wrap: anywhere; color: var(--secondary); }
+.milestone-source a { overflow-wrap: anywhere; }
+.milestone-editor > fieldset > button { margin: -4px 0 24px; font-size: 11px; }
+.milestone-preview { border: 1px solid #efd8b4; background: #fffbf5; border-radius: 8px; padding: 16px; margin-top: 24px; }
+.milestone-preview h3 { font-size: 14px; margin: 0 0 16px; }
+.milestone-preview h4 { font-size: 12px; margin: 0 0 16px; }
+.milestone-preview-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.milestone-preview-columns > div { min-width: 0; }
+.milestone-preview .milestone-source { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.milestone-preview .milestone-source dd { margin-bottom: 8px; }
+.milestone-editor .submission-checkbox, .submission-checkbox { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.8; margin: 24px 0; }
+.submission-checkbox input { width: 16px; height: 16px; flex-shrink: 0; margin: 3px 0 0; padding: 0; accent-color: var(--primary); }
+@media (max-width: 1000px) { .submission-list { grid-template-columns: minmax(0, 1fr); } .submission-detail-columns { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) {
+  .submission-filters label:first-child { width: 100%; }
+  .submission-filters input[type=search] { width: 100%; }
+  .submission-filters select { max-width: 160px; }
+  .submission-card, .submission-metadata, .milestone-card { padding: 20px; }
+  .submission-detail-heading { flex-wrap: wrap; }
+  .milestone-card header { flex-wrap: wrap; }
+  .milestone-preview-columns { grid-template-columns: minmax(0, 1fr); }
+  .milestone-preview .dialog-actions { flex-direction: column; }
+  .milestone-preview button { height: auto; min-height: 34px; padding: 8px; }
+  .milestone-source { grid-template-columns: 80px minmax(0, 1fr); gap: 10px; }
+}

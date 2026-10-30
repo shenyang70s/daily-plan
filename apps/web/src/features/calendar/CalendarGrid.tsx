@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { calendarDateAt, localDateTimeAt } from '@research/domain';
+import { calendarDateAt, localDateTimeAt, formatDeadline } from '@research/domain';
 import type { CalendarItem } from '@research/contracts';
-import { calendarText as t } from '../../locales/zh-CN';
+import { calendarText as t, submissionText } from '../../locales/zh-CN';
 import { navigate } from '../../app/router';
 const kindLabel = (item: CalendarItem) => item.kind === 'event' ? t.event : item.kind === 'block' ? t.block : t.milestone;
 function onDate(item: CalendarItem, date: string, timezone: string): boolean {
@@ -11,8 +11,12 @@ function onDate(item: CalendarItem, date: string, timezone: string): boolean {
   return first <= date && last >= date;
 }
 function Item({ item, timezone }: { item: CalendarItem; timezone: string }) {
-  const time = item.startAt ? `${localDateTimeAt(item.startAt, timezone).slice(11, 16)}${item.endAt ? `–${localDateTimeAt(item.endAt, timezone).slice(11, 16)}` : ''}` : t.allDay;
-  return <button type="button" className={`calendar-item item-${item.kind}`} title={`${item.title} · ${time} · ${timezone}`} aria-label={`${kindLabel(item)}：${item.title} ${time}`} onClick={() => navigate(item.kind === 'milestone' ? `/tasks/${item.resourceId}` : `/calendar/${item.kind === 'event' ? 'events' : 'blocks'}/${item.resourceId}`)}><span>{time}</span><strong>{item.title}</strong></button>;
+  const time = item.startAt ? `${localDateTimeAt(item.startAt, timezone).slice(11, item.kind === 'milestone' ? 19 : 16)}${item.endAt ? `–${localDateTimeAt(item.endAt, timezone).slice(11, 16)}` : ''}` : t.allDay;
+  const title = item.milestoneKind ? `${item.title} · ${submissionText.kinds[item.milestoneKind]}` : item.title;
+  const due = item.date ? { kind: 'date' as const, date: item.date } : item.startAt ? { kind: 'instant' as const, at: item.startAt, timezone: item.timezone } : null;
+  const exact = item.kind === 'milestone' ? formatDeadline(due, timezone) : time;
+  const source = item.kind === 'milestone' && due?.kind === 'instant' ? formatDeadline(due, item.sourceTimezone ?? item.timezone) : '';
+  return <button type="button" className={`calendar-item item-${item.kind}`} title={`${title} · ${exact}${source ? ` | ${source}` : ''}`} aria-label={`${kindLabel(item)}：${title} ${time}`} onClick={() => navigate(item.kind === 'milestone' ? item.submissionId ? `/submissions/${item.submissionId}` : `/tasks/${item.resourceId}` : `/calendar/${item.kind === 'event' ? 'events' : 'blocks'}/${item.resourceId}`)}><span>{time}</span><strong>{title}</strong></button>;
 }
 export function CalendarGrid({ dates, items, timezone, view, onSlot }: { dates: string[]; items: CalendarItem[]; timezone: string; view: 'day' | 'week' | 'month'; onSlot: (slot: string) => void }) {
   const scroll = useRef<HTMLDivElement>(null);

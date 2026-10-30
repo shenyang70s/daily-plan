@@ -91,7 +91,8 @@ tests/e2e/                # 登录后的关键用户闭环
 - Task 4：应用壳层、正式路由、页面导航搜索、通知入口、分组设置、模态弹窗和提示条已实现；本地真实浏览器已验证登录与偏好、导航和历史、生产深链刷新、焦点与键盘，以及 1440、1180、900、600 px 布局。业务通知数据和 Staging 仍待接入/验收。
 - Task 5：任务与课题 CRUD、Today/Inbox/Tasks、详情编辑、筛选与游标分页、完成/重新打开/归档、软删除确认和 24 小时恢复已实现。写入在短事务中校验所有权、版本和幂等键；课题删除保留任务并递增受影响任务版本。Today 采用用户时区，包含未排程但今天到期的任务；改期限不创建或移动工作块。共享包、API 与 Web 构建通过；任务 HTTP 集成和既有认证/页面回退检查通过，Web 的 5 项检查通过。隔离 SQLite 与真实浏览器验证了完整任务/课题流程、刷新恢复、筛选、409 保留输入、删除撤销、响应丢失后幂等重试、账户隔离与四种窗口尺寸。未使用模拟业务数据替代正式实现。
 - Task 6：日/周/月日历、日期/精确期限读模型、固定事件及关联准备任务、已有任务工作块、新任务与工作块原子创建、编辑/取消和详情深链已实现。写入事务内检查冲突，签名确认凭据绑定候选时间、当前用户和冲突版本；旧确认拒绝且无部分写入。工作块与期限分别保存，Task reschedule 已支持 deadline/blocks/both。Temporal 0.5.1 已锁定，日历按需加载。共享包/API/Web 构建、地区时区 2 项、原领域 5 项、Web 7 项与日历/任务/认证/页面路由 4 项定向检查通过。真实浏览器验证创建、准备任务原子性、相接不冲突、变化后的冲突重新确认、日周月、深链刷新、工作块编辑/取消不改期限、切换时区、夏令时拒绝及明确偏移、跨用户隔离和四种尺寸；截图检查后修复已占时段新增入口与桌面周日列裁切。
-- Task 7–14：未开始；投稿、提醒和 AI 仍待接入，Staging 验收保持待完成。
+- Task 7：投稿与独立节点 CRUD、阶段更新、归档/恢复、来源与核实信息、待定/纯日期/精确时刻、服务器标准化的节点修改预览和确认已实现。归档保留节点，阶段更新不改期限，节点写入递增父记录版本；时区使用 Temporal，保留 AoE/PT 来源与秒精度。共享领域规则负责下一节点、倒计时与统一格式化，投稿列表/详情和日历共用，通知待 Task 8 使用。日历纳入投稿节点，点击跳转投稿详情。共享包/API/Web 构建通过，投稿 HTTP 与日历/认证回归、节点领域检查共 5 项通过，Web 7 项检查通过。隔离 SQLite 与真实浏览器验证完整投稿/节点流程、未确认不写入、取消与确认、版本冲突保留输入、阶段与期限分离、上海/洛杉矶同一瞬间、日历跳转、AoE/PT/夏令时、已截止、四种尺寸、归档恢复、节点删除、筛选与账户隔离；截图已检查。Staging 待验收。
+- Task 8–14：未开始；可靠提醒、通知与 AI 仍待接入，Staging 验收保持待完成。
 
 ## 阶段与验收里程碑
 
@@ -177,13 +178,13 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 7：投稿阶段、节点和时区展示
 
-**Files:** 创建 `apps/api/src/modules/submissions/{submissions.controller,submissions.service,milestones.controller}.ts`、`packages/persistence/src/submission.repository.ts`、`apps/web/src/features/submissions/{SubmissionsPage,SubmissionDetailPanel,MilestoneList}.tsx`；测试 `apps/api/test/integration/submissions.spec.ts`。
+**Files:** 创建 `apps/api/src/modules/submissions/{submissions.controller,submissions.service,submissions.module,milestones.controller}.ts`、`packages/persistence/src/submission.repository.ts`、`packages/domain/src/milestones.ts`、`apps/web/src/features/submissions/{SubmissionsPage,SubmissionDetailPanel,SubmissionEditor,MilestoneList,MilestoneEditor,DeadlineView}.tsx`；测试 `apps/api/test/integration/submissions.test.mjs` 与 `packages/domain/test/integration/milestones.test.mjs`。
 
 **Interfaces:** 第 8.4 章 API；`SubmissionMilestone` 使用 Task 2 的日期/时刻语义，补充 `sourceUrl`、`sourceTimezone`、`verifiedAt` 和 `version`。节点可为 unknown，不把空值默认为今天。`nextMilestone(submission,now)` 使用可注入时钟，正式页面不沿用原型固定日期。
 
-- [ ] 为摘要/全文分开存储、秒精度、AoE/PT 转换、来源保留、阶段变更不改官方时间、跨用户节点访问写失败用例并运行。
-- [ ] 实现投稿 CRUD、阶段流转、节点编辑确认、倒计时和来源显示；同时显示原始时区与用户本地时间，截止后显示已截止。列表、日历与通知共用同一时刻格式化函数。
-- [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/submissions.spec.ts`；浏览器手动验证两种用户时区下同一节点代表相同瞬间。
+- [x] 为摘要/全文分开存储、秒精度、AoE/PT 转换、来源保留、阶段变更不改官方时间、跨用户节点访问写失败用例并运行。
+- [x] 实现投稿 CRUD、阶段更新、节点编辑预览与确认、倒计时和来源显示；同时显示原始时区与用户本地时间，截止后显示已截止。列表、详情与日历共用领域格式化函数，供 Task 8 的通知复用。
+- [x] 运行共享包/API/Web 构建，`node --test apps/api/test/integration/{submissions,calendar,auth-http}.test.mjs packages/domain/test/integration/milestones.test.mjs` 和 Web 定向检查；真实浏览器验证上海/洛杉矶同一瞬间、来源日期与秒、待定与已截止、修改取消/确认、版本冲突、归档恢复、删除确认、筛选、日历链接、四种尺寸和账户隔离。
 - [ ] 提交：`feat: add submission milestones with source timezones`。
 
 ## Task 8：持久化提醒、通知中心与进程内调度

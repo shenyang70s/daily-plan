@@ -17,7 +17,7 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、课题、日历与偏好设置',contextNext:'接下来',contextUpcoming:'投稿、提醒与 AI',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿与偏好设置',contextNext:'接下来',contextUpcoming:'可靠提醒与 AI',
  notificationSettingsNote:'这里保存提醒偏好；服务端提醒派发尚未开放。',quiet:'静音模式',aiSettingsNote:'这里保存 AI 使用偏好；真实模型服务尚未接入。',proactive:'主动建议',
 };
 
@@ -51,4 +51,20 @@ export const calendarText = {
   removeEvent: '删除事件', cancelBlock: '取消工作块', removeHelp: '事件将从日历删除，关联的准备任务会保留。', cancelHelp: '只取消这段工作时间，不修改或删除任务及其截止时间。', confirm: '确认', cancel: '取消', removed: '安排已移除', refresh: '刷新最新版本',
   taskLink: '打开任务详情', preparationTasks: '关联的准备任务', notFound: '找不到这项安排', notFoundHelp: '安排可能已被移除，或当前账户没有访问权限。',
   allDay: '日期型期限', milestone: '截止', event: '事件', block: '工作块', continue: '跨日', createSlot: '创建安排', weekDays: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+};
+
+export const submissionText = {
+  title: '投稿', add: '添加投稿', createTitle: '新建投稿', name: '会议 / 期刊名称', year: '年份（可选）', round: '轮次（可选）', stage: '投稿阶段', submissionUrl: '投稿系统链接', draftUrl: '草稿链接', nextAction: '下一步行动',
+  stages: { planning: '计划中', preparing: '准备中', internal_review: '内部审阅', submitted: '已提交', under_review: '审稿中', rebuttal: '答辩中', decision: '等待决定', accepted: '已录用', rejected: '未录用', withdrawn: '已撤回' },
+  kinds: { abstract: '摘要', full_paper: '全文', rebuttal: '答辩', notification: '结果通知', camera_ready: '最终稿', other: '其他节点' },
+  search: '搜索投稿', searchPlaceholder: '搜索名称、轮次或下一步行动', allStages: '全部阶段', active: '正在跟进', archived: '已归档', archiveFilter: '归档状态', clearFilters: '清除筛选', loadMore: '加载更多', loading: '正在加载投稿…', retry: '重试', unavailable: '投稿加载失败',
+  empty: '还没有投稿记录', emptyHelp: '添加会议或期刊，分别维护摘要、全文和其他重要节点。', filteredEmpty: '没有符合条件的投稿', filteredEmptyHelp: '调整阶段或关键词，或清除筛选后再试。',
+  detail: '投稿详情', back: '返回投稿列表', save: '保存投稿', saving: '正在保存…', created: '投稿已创建', saved: '投稿已保存', create: '创建投稿', invalidInput: '请检查名称、年份、轮次和链接，链接仅支持 HTTP 或 HTTPS。', refresh: '刷新最新版本', notFound: '找不到这条投稿', notFoundHelp: '记录可能不存在，或当前账户没有访问权限。',
+  archive: '归档投稿', archiveTitle: '确认归档投稿', archiveHelp: '归档会保留阶段、节点和来源，并从正在跟进的列表及日历隐藏。之后可以恢复。', restore: '恢复投稿', archivedDone: '投稿已归档', restored: '投稿已恢复', archivedNote: '这条投稿已归档，恢复后可继续编辑节点与来源。', cancel: '取消', confirm: '确认归档',
+  milestones: '截止节点', addMilestone: '添加节点', createMilestone: '新建截止节点', editMilestone: '编辑截止节点', kind: '节点类型', deadlineKind: '时间类型', unknown: '待定', dateOnly: '仅日期', instant: '精确时刻', date: '截止日期', localDateTime: '来源本地时刻', sourceTimezone: '来源时区', timezoneHint: '例如 AoE、PT 或 Asia/Shanghai；待定节点不需要补日期。', offset: '夏令时偏移（可选）', offsetHint: '重复时刻可填写 -07:00 或 -08:00；不存在的时刻不能保存。',
+  sourceUrl: '来源链接', officialUrl: '官网链接', verifiedAt: '核实时间（ISO，可选）', markVerified: '标记现在已核实', notVerified: '尚未核实', noSource: '未提供来源',
+  saveMilestone: '保存节点', preview: '预览修改', milestoneCreated: '节点已创建', milestoneSaved: '节点已更新', invalidMilestone: '请检查节点、时间、时区、来源链接和核实时间。',
+  previewTitle: '核对节点与来源的修改', before: '修改前', after: '修改后', confirmEdit: '我已核对截止时间和来源，确认修改', confirmSave: '确认修改节点', backToEdit: '返回修改',
+  removeMilestone: '删除节点', removeTitle: '确认删除截止节点', removeHelp: '节点及其来源将被删除，投稿记录会保留。请确认要删除的节点。', confirmRemove: '我确认删除这个节点', removeConfirm: '确认删除节点', removed: '节点已删除',
+  noMilestones: '尚未设置截止节点', noMilestonesHelp: '日期尚未公布时可添加待定节点，不会被补成今天。', nextMilestone: '下一节点', nextUnknown: '暂无已知的后续节点', localTime: '当前时区', sourceTime: '来源时间', dateMeaning: '仅日期，不换算为午夜时刻', deadlineUnknown: '时间待定', passed: '已截止', dueToday: '今天截止', remainingDays: '天后截止', remaining: '距截止', dayUnit: '天', hourUnit: '时', minuteUnit: '分', secondUnit: '秒', version: '版本',
 };

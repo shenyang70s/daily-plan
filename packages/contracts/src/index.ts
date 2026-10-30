@@ -79,6 +79,26 @@ export type CreateScheduledTaskInput = z.infer<typeof CreateScheduledTaskSchema>
 export type CalendarConflict = { kind: 'event' | 'block'; id: string; title: string; startAt: string; endAt: string; version: number };
 export interface CalendarEventDto extends CalendarRange { id: string; title: string; location: string; note: string; externalUrl: string | null; version: number; preparationTasks: { id: string; title: string }[] }
 export interface CalendarBlockDto extends ScheduleBlockDto { taskId: string; title: string; taskVersion: number; status: 'confirmed' | 'canceled' }
-export interface CalendarItem { kind: 'event' | 'block' | 'milestone'; resourceId: string; title: string; timezone: string; startAt?: string; endAt?: string; date?: string; taskId?: string; version: number }
+export interface CalendarItem { submissionId?: string; milestoneKind?: MilestoneKind; sourceTimezone?: string | null; kind: 'event' | 'block' | 'milestone'; resourceId: string; title: string; timezone: string; startAt?: string; endAt?: string; date?: string; taskId?: string; version: number }
 
 export const RescheduleTaskSchema = ExpectedVersionSchema.extend({ scope: z.enum(['deadline', 'blocks', 'both']), due: TaskDueSchema.optional(), blocks: z.array(CalendarRangeSchema.extend({ id: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict()).min(1).max(50).optional(), ...ConflictConfirmationSchema.shape }).strict();
+
+export const SubmissionStageSchema = z.enum(['planning', 'preparing', 'internal_review', 'submitted', 'under_review', 'rebuttal', 'decision', 'accepted', 'rejected', 'withdrawn']);
+export const MilestoneKindSchema = z.enum(['abstract', 'full_paper', 'rebuttal', 'notification', 'camera_ready', 'other']);
+const httpUrl = z.string().trim().url().refine(value => /^https?:\/\//i.test(value)).nullable();
+export const CreateSubmissionSchema = z.object({ name: z.string().trim().min(1).max(200), year: z.number().int().min(1900).max(2200).nullable().default(null), round: z.string().trim().max(80).nullable().default(null), stage: SubmissionStageSchema.default('planning'), submissionUrl: httpUrl.default(null), draftUrl: httpUrl.default(null), nextAction: z.string().max(2000).default('') }).strict();
+export const UpdateSubmissionSchema = CreateSubmissionSchema.partial().extend({ expectedVersion: z.number().int().min(1) }).strict();
+export const SubmissionListSchema = z.object({ q: z.string().trim().max(200).optional(), stage: SubmissionStageSchema.optional(), year: z.coerce.number().int().min(1900).max(2200).optional(), archived: z.enum(['true', 'false']).default('false'), limit: z.coerce.number().int().min(1).max(100).default(30), cursor: z.string().min(1).max(512).optional() }).strict();
+const milestoneFields = z.object({ kind: MilestoneKindSchema, due: TaskDueSchema.optional(), localDeadline: z.object({ localDateTime: z.string().min(1).max(40), timezone: z.string().min(1).max(64), offset: z.string().regex(/^[+-]\d{2}:\d{2}$/).optional() }).strict().optional(), sourceTimezone: z.string().trim().min(1).max(64).nullable().optional(), sourceUrl: httpUrl.optional(), officialUrl: httpUrl.optional(), verifiedAt: z.string().datetime({ offset: true }).nullable().optional() });
+export const CreateMilestoneSchema = milestoneFields.extend({ expectedSubmissionVersion: z.number().int().min(1) }).strict().refine(value => !(value.due !== undefined && value.localDeadline !== undefined), 'Use one deadline representation');
+export const UpdateMilestoneSchema = milestoneFields.partial().extend({ expectedVersion: z.number().int().min(1), confirmDeadlineChange: z.literal(true).optional() }).strict().refine(value => !(value.due !== undefined && value.localDeadline !== undefined), 'Use one deadline representation');
+export const DeleteMilestoneSchema = ExpectedVersionSchema.extend({ confirm: z.literal(true) }).strict();
+export type SubmissionStage = z.infer<typeof SubmissionStageSchema>;
+export type MilestoneKind = z.infer<typeof MilestoneKindSchema>;
+export type CreateSubmissionInput = z.infer<typeof CreateSubmissionSchema>;
+export type UpdateSubmissionInput = z.infer<typeof UpdateSubmissionSchema>;
+export type SubmissionListInput = z.infer<typeof SubmissionListSchema>;
+export type CreateMilestoneInput = z.infer<typeof CreateMilestoneSchema>;
+export type UpdateMilestoneInput = z.infer<typeof UpdateMilestoneSchema>;
+export interface MilestoneDto { id: string; submissionId: string; kind: MilestoneKind; due: TaskDue; sourceTimezone: string | null; sourceUrl: string | null; officialUrl: string | null; verifiedAt: string | null; createdAt: string; updatedAt: string; version: number }
+export interface SubmissionDto { id: string; name: string; year: number | null; round: string | null; stage: SubmissionStage; submissionUrl: string | null; draftUrl: string | null; nextAction: string; archivedAt: string | null; createdAt: string; updatedAt: string; version: number; milestones: MilestoneDto[]; nextMilestone: MilestoneDto | null }
