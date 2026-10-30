@@ -1,3 +1,5 @@
+
+
 # Research Tasks Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. 默认由当前执行者顺序实施；仅在用户明确要求时启用子代理。
@@ -86,8 +88,7 @@ tests/e2e/                # 登录后的关键用户闭环
 - Task 2：SQLite 迁移、短事务、外键/WAL、有界写锁、正式 better-sqlite3 驱动均已验证。Task 3 的用户名/口令迁移采用新增 SQL，不修改历史 migration。PT/IANA 夏令时归一化适配仍待完成，固定偏移工具会拒绝未支持的 PT。
 - Task 3：用户名/口令登录、退出、12 小时会话、Cookie、CSRF、失败限流、用户偏好 API、账号创建 CLI 和 React 登录/偏好页面已有实现。真实 SQLite 服务测试及 NestJS 路由测试通过；浏览器流程仍待验收，不标记 Staging 完成。
 - 基础检查为 `npm run test:foundation`；正式驱动/认证集成为 `corepack pnpm test:integration`。测试使用隔离临时库，不创建演示生产账号。
-- Task 4：应用壳层、正式页面路由与深链、浏览器历史导航、分组设置、导航搜索、通知入口、原生模态弹窗和提示条已实现。业务 API 的 401 清理会话缓存，409 与取消请求保留可识别错误；后续资源缓存使用用户维度的 key。API 提供生产页面路由回退，API 与静态资源错误不被 HTML 覆盖。Web 的 5 项定向检查、前后端构建，以及页面回退和既有认证 HTTP 集成检查通过。使用隔离临时 SQLite 与真实浏览器验证登录、设置保存后刷新、账户切换、会话失效、页面前进/后退、深链刷新、弹窗焦点循环与 Esc，以及 1440、1180、900、600 px 布局；无浏览器运行时异常。Staging 仍待验收。
-- Task 5–14：未开始；业务页面明确提示任务管理、日历、投稿和通知尚未接入，不使用假任务或模拟模型替代正式实现。
+- Task 4–14：未开始；当前登录后的页面明确提示任务管理尚未开放，不使用假任务或模拟模型替代正式实现。
 
 ## 阶段与验收里程碑
 
@@ -144,9 +145,9 @@ tests/e2e/                # 登录后的关键用户闭环
 
 **Interfaces:** `apiRequest<T>(path:string, options:RequestInit):Promise<T>` 统一处理 401、API 错误、409 和中止；Query key 使用 `[resource,userId,filters]`，退出清理用户缓存。路由遵循前端规范：`/today`、`/inbox`、`/tasks`、`/tasks/:taskId`、`/calendar`、`/submissions`、`/submissions/:submissionId`、`/settings/*`。
 
-- [x] 将原型的 Token、布局和交互约束迁入 React；路由显示实际加载/错误/空状态，尚未实现的数据页不能显示伪造成功。
-- [x] 将全局搜索和通知入口接入壳层；Dialog 管理焦点、Esc 和键盘循环；中文文案集中管理。当前搜索支持页面导航；业务内容搜索和通知数据分别等待 Task 5 和 Task 8。
-- [x] 运行 `pnpm --filter @research/web build`；真实浏览器在 1440、1180、900、600 px 检查布局、导航、键盘焦点和浏览器前进/后退，并验证生产深链刷新。
+- [ ] 将原型的 Token、布局和交互约束迁入 React；路由显示实际加载/错误/空状态，尚未实现的数据页不能显示伪造成功。
+- [ ] 将全局搜索和通知入口接入壳层；Dialog 管理焦点、Esc 和键盘循环；中文文案集中管理。
+- [ ] 运行 `pnpm --filter @research/web build`；浏览器在 1440、1180、900 px 检查布局、导航、键盘焦点和浏览器前进/后退。无浏览器工具时明确记录未验证项，不以截图猜测通过。
 - [ ] 提交：`feat: implement application shell and routes`。
 
 ## Task 5：任务 CRUD、Today、Inbox 与 Tasks
