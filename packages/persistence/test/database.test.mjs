@@ -16,13 +16,13 @@ function fixture(t,options={}) {
   t.after(()=>{db.close();rmSync(directory,{recursive:true,force:true});});
   return {db,path,directory};
 }
-function insertUser(tx,id='alice') { tx.run('INSERT INTO users(id,oidc_issuer,oidc_subject,created_at) VALUES(?,?,?,?)',id,'https://issuer.example',id,1); }
+function insertUser(tx,id='alice') { tx.run('INSERT INTO users(id,identity_provider,identity_subject,created_at) VALUES(?,?,?,?)',id,'https://issuer.example',id,1); }
 
 test('migrations persist to disk and rerunning does not recreate tables',t=>{
   const {db,path}=fixture(t);
   db.withTransaction(tx=>insertUser(tx));
   const second=createDatabase(new DatabaseSync(path),{migrationsPath:migrations});
-  try {assert.equal(second.get('SELECT id FROM users').id,'alice');assert.equal(second.ready(),true);assert.equal(second.get('SELECT count(*) AS count FROM schema_migrations').count,2);} finally {second.close();}
+  try {assert.equal(second.get('SELECT id FROM users').id,'alice');assert.equal(second.ready(),true);assert.equal(second.get('SELECT count(*) AS count FROM schema_migrations').count,3);} finally {second.close();}
 });
 test('SQLite foreign keys reject orphan tasks and transactions roll back all writes',t=>{
   const {db}=fixture(t);

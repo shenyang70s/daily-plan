@@ -1,12 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-
-export function App() {
-  const health = useQuery({queryKey: ['system', 'ready'], queryFn: async ({signal}) => {
-    const response = await fetch('/api/v1/ready', {signal});
-    if (!response.ok) throw new Error('服务尚未就绪');
-    const value: unknown = await response.json();
-    if (!value || typeof value !== 'object' || !('status' in value) || value.status !== 'ok') throw new Error('无效的服务状态');
-    return true;
-  }});
-  return <main className="setup"><div className="brand">Research Tasks<span>.</span></div><p className="eyebrow">YOUR RESEARCH, IN FOCUS</p><h1>科研任务，从容安排。</h1><p className="description">正式应用的工程基座已建立。登录与任务页面正在实现，当前页面不使用演示身份或虚构任务。</p><section aria-live="polite"><span className={`status-dot ${health.isSuccess?'online':''}`} /><strong>{health.isPending?'正在连接服务…':health.isError?'API 尚未连接':'API 与 SQLite 已就绪'}</strong><p>{health.isError?'请确认 API 已启动，并检查数据库迁移与文件权限。':'当前检查的是服务端真实就绪状态。'}</p>{health.isError&&<button onClick={()=>void health.refetch()}>重新检查</button>}</section><footer>任务、时间、提醒。把注意力留给研究。</footer></main>;
+import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
+import {ApiError,apiRequest,setCsrfToken} from '../lib/api-client';
+import {SignInPage} from '../features/auth/SignInPage';
+import {GeneralSettings} from '../features/settings/GeneralSettings';
+import type {Preferences} from '../features/settings/GeneralSettings';
+import {text} from '../locales/zh-CN';
+interface Me{user:{id:string;username:string};csrfToken:string;preferences:Preferences}
+export function App(){
+ const client=useQueryClient();
+ const me=useQuery({queryKey:['me'],retry:false,queryFn:async()=>{try{const result=await apiRequest<Me>('/me');setCsrfToken(result.csrfToken);return result}catch(error){if(error instanceof ApiError&&error.status===401){setCsrfToken('');return null}throw error}}});
+ const logout=useMutation({mutationFn:()=>apiRequest('/auth/logout',{method:'POST'}),onSuccess:()=>{setCsrfToken('');client.clear();client.setQueryData(['me'],null)}});
+ if(me.isPending)return <main className="setup"><p role="status">{text.checking}</p></main>;
+ if(me.isError)return <main className="setup"><h1>{text.unavailable}</h1><button onClick={()=>void me.refetch()}>{text.retry}</button></main>;
+ if(!me.data)return <SignInPage onSignedIn={()=>void client.invalidateQueries({queryKey:['me']})}/>;
+ return <main className="workspace"><header className="workspace-header"><div className="brand">{text.brand}<span>.</span></div><div><span className="username">{me.data.user.username}</span><button disabled={logout.isPending} onClick={()=>logout.mutate()}>{text.logout}</button></div></header><p className="eyebrow">{text.eyebrow}</p><h1>{text.greeting}</h1><p className="description">{text.setupNote}</p>{logout.isError&&<p className="error" role="alert">{logout.error.message}</p>}<GeneralSettings key={me.data.user.id} preferences={me.data.preferences} onSaved={()=>void client.invalidateQueries({queryKey:['me']})}/><footer>{text.footer}</footer></main>;
 }

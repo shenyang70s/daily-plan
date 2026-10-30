@@ -14,11 +14,11 @@ This repository contains design materials, a static prototype, and the initial a
 - `packages/contracts/`, `packages/domain/`, `packages/persistence/`: DTOs, domain rules, and SQLite persistence.
 - `infra/migrations/`: versioned SQL; `scripts/`: migration entry point.
 
-The approved implementation uses SQLite. Framework startup and the production driver remain unverified until dependency installation succeeds; see the root README and implementation plan.
+The approved implementation uses SQLite and username/password sessions. Dependencies, type checks, frontend/backend builds, production driver tests, and in-memory HTTP authentication checks pass. The execution sandbox blocks TCP listening; browser and Staging validation remain pending. See the root README and implementation plan.
 
 ## Build, Test, and Development Commands
 
-Run `npm run test:foundation` for dependency-free domain and SQLite behavior checks. Application commands require dependency installation: `corepack pnpm install`, then `corepack pnpm dev`, `corepack pnpm build`, or `corepack pnpm typecheck`. `corepack pnpm db:migrate` initializes the configured SQLite file. These application commands have not yet been verified in this execution environment. Preview design Markdown with an editor that resolves relative image paths.
+Run `npm run test:foundation` for dependency-free domain and SQLite behavior checks. Application commands require dependency installation: `corepack pnpm install`, then `corepack pnpm dev`, `corepack pnpm build`, or `corepack pnpm typecheck`. `corepack pnpm db:migrate` initializes the configured SQLite file. Run `corepack pnpm account:create <username>` to create an account with a hidden password prompt, and `corepack pnpm test:integration` for driver/authentication/CLI checks. Application TCP startup must be checked in the host terminal. Preview design Markdown with an editor that resolves relative image paths.
 
 To regenerate a diagram from the repository root, install Graphviz and run:
 
@@ -34,11 +34,11 @@ Preserve the documents’ Chinese prose, numbered sections, tables, and relative
 
 ## Validation Guidelines
 
-For documentation changes, preview Markdown, verify image links, and inspect regenerated diagrams for clipping and legibility. Keep Word documents and editable sources consistent when changing shared content. Shared behavior tests live in `packages/{domain,persistence}/test/*.test.mjs` and use Node’s test runner with real temporary SQLite files. They do not verify the uninstalled better-sqlite3 production driver. No coverage threshold is configured. Framework and browser checks remain pending.
+For documentation changes, preview Markdown, verify image links, and inspect regenerated diagrams for clipping and legibility. Keep Word documents and editable sources consistent when changing shared content. Shared behavior tests live in `packages/{domain,persistence}/test/*.test.mjs` and use Node’s test runner with real temporary SQLite files. Production-driver and authentication checks live in `packages/persistence/test/integration/` and `apps/api/test/integration/`, with real temporary SQLite files. No coverage threshold is configured. Browser checks remain pending.
 
 ## Commit & Pull Request Guidelines
 
-Git history is unavailable in this checkout, so no existing commit convention can be established. Use concise, imperative messages, such as `docs: clarify reminder delivery flow`. Pull requests should describe the change, list affected documents, link relevant issues when available, and include before/after images for diagram or visual-spec changes. State which previews or regeneration checks were performed.
+The root repository now points to `daily-plan`; the current sandbox may still deny Git ref writes. Use concise, imperative messages, such as `docs: clarify reminder delivery flow`. Pull requests should describe the change, list affected documents, link relevant issues when available, and include before/after images for diagram or visual-spec changes. State which previews or regeneration checks were performed.
 
 The Git repository belongs at the `daily-plan/` root. Keep `prototype/` as an ordinary directory in that repository; do not initialize or push a separate nested repository. Local recovery metadata under `.git-recovery/` is ignored and must never be committed. If the session masks the root `.git`, use `scripts/repair-git.sh` from the host terminal rather than creating another repository in a subdirectory.
 

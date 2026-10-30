@@ -24,3 +24,5 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export type TaskDue = z.infer<typeof TaskDueSchema>;
 export interface ApiError {code:string;message:string;fieldErrors?:Record<string,string[]>}
 export interface CursorPage<T> {items:T[];nextCursor:string|null}
+export const LoginSchema=z.object({username:z.string().min(1).max(32),password:z.string().min(1).max(128)}).strict();
+export const PreferencesPatchSchema=z.object({timezone:z.string().min(1).max(64),workStart:z.string(),workEnd:z.string(),notify:z.boolean(),quiet:z.boolean(),ai:z.boolean(),proactive:z.boolean()}).partial().strict();

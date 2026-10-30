@@ -8,13 +8,14 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "concurrently -k -n api,web \"pnpm --filter @research/api dev\" \"pnpm --filter @research/web dev\"",
-    "build": "pnpm --filter @research/domain build && pnpm --filter @research/contracts build && pnpm --filter @research/persistence build && pnpm --filter @research/api build && pnpm --filter @research/web build",
-    "typecheck": "pnpm build:shared && pnpm -r typecheck",
+    "dev": "corepack pnpm build:shared && concurrently -k -n api,web \"corepack pnpm --filter @research/api dev\" \"corepack pnpm --filter @research/web dev\"",
+    "build": "corepack pnpm --filter @research/domain build && corepack pnpm --filter @research/contracts build && corepack pnpm --filter @research/persistence build && corepack pnpm --filter @research/api build && corepack pnpm --filter @research/web build",
+    "typecheck": "corepack pnpm build:shared && corepack pnpm -r typecheck",
     "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts",
     "test:foundation": "node --experimental-strip-types --test packages/domain/test/*.test.mjs packages/persistence/test/*.test.mjs",
-    "build:shared": "pnpm --filter @research/domain build && pnpm --filter @research/contracts build && pnpm --filter @research/persistence build",
-    "predev": "pnpm build:shared"
+    "build:shared": "corepack pnpm --filter @research/domain build && corepack pnpm --filter @research/contracts build && corepack pnpm --filter @research/persistence build",
+    "account:create": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --env-file-if-exists=.env --import tsx scripts/create-account.ts",
+    "test:integration": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --test packages/persistence/test/integration/*.test.mjs apps/api/test/integration/*.test.mjs && bash scripts/test/account-cli.sh"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

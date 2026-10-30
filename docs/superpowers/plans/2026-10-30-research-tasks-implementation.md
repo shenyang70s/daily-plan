@@ -6,13 +6,15 @@
 
 **Architecture:** 使用模块化单体 API 和 SQLite，首版以单实例应用部署，提醒调度在同一服务进程中运行。Web 通过 REST 查询和写入，通过 SSE 接收通知及 AI 运行状态。领域服务统一执行业务规则；LLM、外部会议数据和浏览器缓存均不能直接成为业务事实来源。
 
-**Tech Stack:** 按本次选型采用 TypeScript、React、Vite、TanStack Query、NestJS、SQLite、Zod。使用 pnpm workspace；数据库驱动选择 `better-sqlite3`，配合版本化 SQL migration，不引入独立数据库服务或队列服务。前端使用 Vitest / Testing Library，服务端使用 Jest，关键用户流程使用 Playwright。具体依赖版本在工程初始化时核对兼容性并锁定，本计划不预设未经验证的版本。
+**Tech Stack:** 按本次选型采用 TypeScript、React、Vite、TanStack Query、NestJS、SQLite、Zod。使用 pnpm workspace；数据库驱动选择 `better-sqlite3`，配合版本化 SQL migration，不引入独立数据库服务或队列服务。前端使用 Vitest / Testing Library，服务端使用 Node 内置测试工具，关键用户流程使用 Playwright。具体依赖版本在工程初始化时核对兼容性并锁定，本计划不预设未经验证的版本。
 
 **Spec:** [系统设计](../../research_tasks_system_source_bundle/research_tasks_system_design_v1.md)，重点参考第 5–10、11.4、12、15–17 章；[前端规范](../../research_tasks_frontend_design_spec_v1.docx)；[现有原型说明](../../../prototype/README.md)。
 
 ## 选型更新与适用边界
 
 本次用户确认采用 SQLite。本计划中的存储、事务、调度和部署约定，取代系统设计 V1 中 PostgreSQL、pg-boss、独立 Worker 及对应物理类型的推荐；原系统设计的领域规则、所有权、确认流程与提醒可靠性要求继续适用。本次仅更新实现计划。
+
+认证选型更新：用户明确要求用户名/口令，不采用 OIDC。首版使用 scrypt 口令哈希、服务器端不透明会话及 CSRF 校验，通过服务器终端创建账号，不开放公开注册；该决定替代原系统设计中的 OIDC 推荐。
 
 首版面向个人或小范围、单实例使用。应用与数据库文件位于同一主机的持久化本地磁盘，不通过网络文件系统共享 SQLite 文件，不部署多个写入实例。只有出现跨主机部署或持续写锁竞争影响体验时，才单独评估迁移数据库；不提前实现双数据库适配。
 
@@ -79,11 +81,12 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## 实施进度（2026-10-30）
 
-- Task 1：工程清单、启动入口、迁移命令与环境示例已写入。当前执行环境 npm 代理连接被拒，直连域名无法解析，pnpm/依赖未安装；应用启动、就绪 HTTP 检查和完整构建未验收，不标记完成。
-- Task 2：SQLite 迁移、同步短事务、外键/WAL 配置和基础领域规则已有实现；无需下载依赖的真实 SQLite 行为测试通过。PT/IANA 夏令时适配、Zod 契约运行验证和正式驱动集成尚未完成。
-- 验证调整：共享基础行为使用 `npm run test:foundation`（Node 自带测试工具）。测试向持久化层注入 Node 内置 SQLite 引擎；正式应用仍采用 better-sqlite3。该调整用于当前环境的真实行为验证，不代表计划中的框架集成检查已经通过。
-- Task 3–14：未开始；不使用演示身份或模拟模型替代正式验收。
-- 当前目录的 `.git` 不含可用仓库元数据且为只读，因此没有创建分支、worktree 或提交；保留现有文件继续实施。
+- 依赖已由用户安装，pnpm 10.11.0 和锁文件可用，根仓库 origin 为 daily-plan。当前沙箱仍无法创建 Git 分支（ref 写入失败），未创建嵌套仓库或替代 Git 元数据，未提交/推送。
+- Task 1：工程入口、迁移命令、环境示例、完整类型检查和前后端构建已验证。沙箱禁止监听 TCP 端口；实际 NestJS health/readiness 路由通过内存 HTTP 请求验证，本机浏览器和 Staging 仍待验收。
+- Task 2：SQLite 迁移、短事务、外键/WAL、有界写锁、正式 better-sqlite3 驱动均已验证。Task 3 的用户名/口令迁移采用新增 SQL，不修改历史 migration。PT/IANA 夏令时归一化适配仍待完成，固定偏移工具会拒绝未支持的 PT。
+- Task 3：用户名/口令登录、退出、12 小时会话、Cookie、CSRF、失败限流、用户偏好 API、账号创建 CLI 和 React 登录/偏好页面已有实现。真实 SQLite 服务测试及 NestJS 路由测试通过；浏览器流程仍待验收，不标记 Staging 完成。
+- 基础检查为 `npm run test:foundation`；正式驱动/认证集成为 `corepack pnpm test:integration`。测试使用隔离临时库，不创建演示生产账号。
+- Task 4–14：未开始；当前登录后的页面明确提示任务管理尚未开放，不使用假任务或模拟模型替代正式实现。
 
 ## 阶段与验收里程碑
 
@@ -122,16 +125,17 @@ tests/e2e/                # 登录后的关键用户闭环
 - [ ] 用两个连接到同一临时文件验证外键拒绝孤儿记录、事务异常完整回滚、写锁等待有界、锁释放后可正常写入，以及迁移重复执行不重复建表。运行 `pnpm --filter @research/persistence test --runInBand src/database.spec.ts`、`pnpm --filter @research/domain test --runInBand src/time.spec.ts src/task-state.spec.ts`，以及 `pnpm db:migrate` 对空临时库的迁移检查；要求全部成功。
 - [ ] 提交：`feat: define task contracts and persistence model`。
 
-## Task 3：认证、会话与用户设置
+## Task 3：用户名/口令认证、会话与用户设置
 
-**Files:** 创建 `apps/api/src/modules/identity/{identity.module,session.service,auth.controller,preferences.controller}.ts`、`apps/api/src/common/{session.guard,csrf.guard,api-error.filter}.ts`、`packages/persistence/src/identity.repository.ts`、`apps/web/src/features/auth/SignInPage.tsx`；测试 `apps/api/test/integration/identity.spec.ts`。
+**Files:** 创建 `apps/api/src/modules/identity/{identity.module,identity.service,password,auth.controller,session.guard}.ts`、`apps/api/src/common/{app-error,api-error.filter}.ts`、`infra/migrations/003_password_credentials.sql`、`scripts/create-account.ts`、`apps/web/src/features/auth/SignInPage.tsx`、`apps/web/src/features/settings/GeneralSettings.tsx`；测试 `apps/api/test/integration/{identity,auth-http}.test.mjs`、`scripts/test/account-cli.sh`。
 
-**Interfaces:** `SessionContext={userId:string;sessionId:string}`；选择单一 OIDC 提供商作为首版登录方式，服务端处理回调及 Session Cookie。规划补充 `/auth/login`、`/auth/callback`、`/auth/logout`、`/me`、`/me/preferences`，均位于 `/api/v1`。业务 repository 必须显式接收 `userId`。
+**Interfaces:** `SessionContext={userId:string;sessionId:string;csrfToken:string}`。账号通过 `corepack pnpm account:create <username>` 创建，口令从隐藏交互或标准输入读取；不提供公开注册接口。`POST /auth/login`、`POST /auth/logout`、`GET /me`、`GET/PATCH /me/preferences` 均位于 `/api/v1`。业务数据 owner 来自会话，不来自请求正文。
 
-- [ ] 编写并运行失败用例：未登录返回 401；Cookie 不可由 JS 读取；CSRF 校验失败不能写入；退出后旧会话失效；用户不能读取或修改其他人的偏好。
-- [ ] 实现 OIDC 回调校验、HttpOnly/Secure/SameSite 会话、退出、偏好存储与限流。开发和测试替身只在非生产配置启用，生产不能从请求头指定用户身份。
-- [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/identity.spec.ts`；验收本地登录与退出，并在 Staging 配置独立回调和密钥。
-- [ ] 提交：`feat: add sessions and user preferences`。
+- [ ] 验证未登录返回 401；错误及未知账号统一失败；失败过多限流；口令只保存随机盐 scrypt 哈希；会话令牌只存哈希；退出及过期后失效；其他用户偏好隔离。
+- [ ] 实现 12 小时 HttpOnly/SameSite 会话 Cookie，生产开启 Secure；修改请求同时检查精确 Origin 和会话绑定 CSRF，生产要求 HTTPS APP_ORIGIN。不得将口令或令牌写入日志。
+- [ ] 实现 React 登录和偏好页面，登录后从服务端读取实际身份，退出清理 Query Cache；登录失败保留可重试表单，不伪造身份。
+- [ ] 运行 `corepack pnpm test:integration`，包含真实 SQLite、认证服务、内存 HTTP 和 CLI 用例；宿主机终端创建账号后运行 `corepack pnpm dev` 验证浏览器登录/退出。Staging 未配置时明确保持待验收。
+- [ ] 提交：`feat: add password sessions and user preferences`；仅在 Git 写权限恢复后提交，不以其他路径绕过沙箱限制。
 
 ## Task 4：应用壳层与正式页面路由
 
@@ -277,7 +281,7 @@ tests/e2e/                # 登录后的关键用户闭环
 
 实施 Task 1–2 不需要这些外部配置，可先完成本地闭环；后续任务使用隔离替身验证规则，并在接入真实服务前补齐：
 
-- Task 3：选定的 OIDC 提供商、客户端配置和各环境回调域名。
+- Task 3：已确定用户名/口令；运行时由管理员创建账号，并配置各环境准确的 APP_ORIGIN。无需 OIDC 提供商或客户端密钥。
 - Task 9：选定的模型提供商、模型、密钥及预算/配额；不得用模拟解析冒充真实接入完成。
 - Task 14：带持久化本地磁盘的单实例 Staging/Production 运行环境、域名、SQLite 文件路径和独立备份位置。环境未提供时交付本地产物与部署说明，并明确真实环境验收尚未完成。
 
