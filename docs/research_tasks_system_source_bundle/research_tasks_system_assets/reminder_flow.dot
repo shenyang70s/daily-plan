@@ -1,0 +1,22 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.18", nodesep="0.38", ranksep="0.42", fontname="Noto Sans CJK SC", label="可靠提醒派发流程", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#F8FAFC", color="#CBD5E1", fontname="Noto Sans CJK SC", fontsize=11, margin="0.14,0.10", width=2.1, height=0.62];
+  edge [color="#64748B", arrowsize=0.7, fontname="Noto Sans CJK SC", fontsize=9];
+  scheduler [label="定时扫描到期提醒\nnext_fire_at <= now()", fillcolor="#EFF6FF", color="#93C5FD"];
+  lock [label="事务锁定提醒记录\nSKIP LOCKED / 去重"];
+  rules [label="检查目标状态与静音时段\n完成或取消任务则跳过"];
+  create [label="创建 Notification + Outbox\n同一数据库事务", fillcolor="#FFF7ED", color="#FDBA74"];
+  worker [label="Worker 获取投递作业\n选择通道与模板"];
+  deliver [label="发送 In-app / Web Push / Email"];
+  success [shape=diamond, width=1.6, height=0.85, label="投递成功？", fillcolor="#FEFCE8", color="#FDE047"];
+  done [label="记录成功并更新状态", fillcolor="#ECFDF5", color="#86EFAC"];
+  retry [label="指数退避重试\n超过上限进入 Dead Letter", fillcolor="#FFF7ED", color="#FDBA74"];
+  {rank=same; scheduler; lock; rules; create;}
+  {rank=same; worker; deliver; success; done;}
+  scheduler -> lock -> rules -> create;
+  create -> worker;
+  worker -> deliver -> success;
+  success -> done [label="是"];
+  success -> retry [label="否"];
+  retry -> worker [label="可重试", style=dashed, constraint=false];
+}

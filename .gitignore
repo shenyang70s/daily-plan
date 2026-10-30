@@ -1,0 +1,21 @@
+node_modules/
+dist/
+!prototype/dist/
+!prototype/dist/**
+coverage/
+.env
+.env.*
+!.env.example
+var/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.db
+backups/
+.superpowers/
+playwright-report/
+test-results/
+
+# Local Git recovery metadata; never commit or publish.
+/.git-recovery/

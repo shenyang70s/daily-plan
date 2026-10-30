@@ -1,0 +1,32 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.15", nodesep="0.35", ranksep="0.5", fontname="Noto Sans CJK SC", label="核心领域实体关系", labelloc=t, fontsize=18];
+  node [shape=box, style="rounded,filled", fillcolor="#F8FAFC", color="#CBD5E1", fontname="Noto Sans CJK SC", fontsize=10, margin="0.13,0.08"];
+  edge [color="#64748B", arrowsize=0.7, fontname="Noto Sans CJK SC", fontsize=9];
+  user [label="User\n个人空间", fillcolor="#EFF6FF", color="#93C5FD"];
+  task [label="Task\n科研行动", fillcolor="#ECFDF5", color="#86EFAC"];
+  project [label="Project\n轻量分组"];
+  block [label="TaskScheduleBlock\n计划工作块"];
+  event [label="CalendarEvent\n组会 / 固定活动"];
+  submission [label="Submission\n投稿追踪"];
+  milestone [label="SubmissionMilestone\n关键日期"];
+  reminder [label="Reminder\n提醒规则", fillcolor="#FFF7ED", color="#FDBA74"];
+  notification [label="Notification / Delivery\n通知与投递记录"];
+  proposal [label="AIProposal\n待确认操作提案", fillcolor="#FDF2F8", color="#F9A8D4"];
+  audit [label="AuditEvent\n操作审计"];
+  user -> task [label="1 : N"];
+  user -> event [label="1 : N"];
+  user -> submission [label="1 : N"];
+  user -> reminder [label="1 : N"];
+  user -> proposal [label="1 : N"];
+  project -> task [label="1 : N"];
+  task -> block [label="1 : N"];
+  task -> event [label="N : N 通过关联表", style=dashed];
+  submission -> milestone [label="1 : N"];
+  task -> reminder [label="1 : N", style=dashed];
+  event -> reminder [label="1 : N", style=dashed];
+  milestone -> reminder [label="1 : N", style=dashed];
+  reminder -> notification [label="触发"];
+  proposal -> audit [label="执行后"];
+  task -> audit [style=dotted];
+  event -> audit [style=dotted];
+}

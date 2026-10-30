@@ -1,0 +1,33 @@
+digraph G {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.35", ranksep="0.55", fontname="Noto Sans CJK SC", label="Research Tasks 系统总体架构", labelloc=t, fontsize=20];
+  node [shape=box, style="rounded,filled", fillcolor="#F8FAFC", color="#CBD5E1", fontname="Noto Sans CJK SC", fontsize=10, margin="0.16,0.10"];
+  edge [color="#64748B", arrowsize=0.7, fontname="Noto Sans CJK SC", fontsize=9];
+
+  browser [label="桌面浏览器\nReact + TypeScript + Vite", fillcolor="#EFF6FF", color="#93C5FD"];
+  api [label="API 应用（模块化单体）\nNestJS / TypeScript", fillcolor="#ECFDF5", color="#86EFAC"];
+  subgraph cluster_modules {
+    label="业务模块（同一部署单元内的清晰边界）"; color="#CBD5E1"; style="rounded,dashed"; fontname="Noto Sans CJK SC"; fontsize=10;
+    identity [label="身份与用户设置"];
+    task [label="任务 / 轻量项目"];
+    calendar [label="日历 / 工作块 / 事件"];
+    submission [label="投稿追踪"];
+    reminder [label="提醒 / 通知"];
+    ai [label="AI Agent 编排\n工具白名单 / 操作提案"];
+    audit [label="审计 / 幂等 / Outbox"];
+  }
+  db [shape=cylinder, label="PostgreSQL\n业务数据 + pg-boss 作业队列", fillcolor="#F5F3FF", color="#C4B5FD"];
+  worker [label="后台 Worker\n提醒派发 / 重试 / 复盘任务", fillcolor="#FFF7ED", color="#FDBA74"];
+  llm [label="模型提供商（可替换）\n结构化输出 / Tool Calling", fillcolor="#FDF2F8", color="#F9A8D4"];
+  channels [label="通知通道\nIn-app · Web Push · Email（可选）", fillcolor="#F0FDFA", color="#5EEAD4"];
+  integrations [label="外部专业工具\nZotero / 笔记 / GitHub / Calendar", fillcolor="#F8FAFC", color="#CBD5E1"];
+
+  browser -> api [label="HTTPS REST / SSE"];
+  api -> db [label="事务读写"];
+  api -> llm [label="最小上下文 / 结构化请求"];
+  api -> integrations [label="深链 / 授权连接（后续）"];
+  db -> worker [label="待处理作业 / Outbox"];
+  worker -> db [label="状态更新 / 投递记录"];
+  worker -> channels [label="投递通知"];
+  channels -> browser [label="Push / 页面内更新", style=dashed];
+  api -> browser [label="SSE：AI 进度 / 通知", style=dashed];
+}

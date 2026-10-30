@@ -1,0 +1,25 @@
+{
+  "name": "research-tasks",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22.14 <23 || >=24",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"pnpm --filter @research/api dev\" \"pnpm --filter @research/web dev\"",
+    "build": "pnpm --filter @research/domain build && pnpm --filter @research/contracts build && pnpm --filter @research/persistence build && pnpm --filter @research/api build && pnpm --filter @research/web build",
+    "typecheck": "pnpm build:shared && pnpm -r typecheck",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts",
+    "test:foundation": "node --experimental-strip-types --test packages/domain/test/*.test.mjs packages/persistence/test/*.test.mjs",
+    "build:shared": "pnpm --filter @research/domain build && pnpm --filter @research/contracts build && pnpm --filter @research/persistence build",
+    "predev": "pnpm build:shared"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}
