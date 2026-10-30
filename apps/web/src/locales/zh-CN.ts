@@ -17,6 +17,24 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'登录与偏好设置',contextNext:'接下来',contextUpcoming:'任务与时间管理',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、课题与偏好设置',contextNext:'接下来',contextUpcoming:'日历、工作块与投稿',
  notificationSettingsNote:'这里保存提醒偏好；服务端提醒派发尚未开放。',quiet:'静音模式',aiSettingsNote:'这里保存 AI 使用偏好；真实模型服务尚未接入。',proactive:'主动建议',
+};
+
+export const tasksText = {
+  title: '任务标题', quickPlaceholder: '记录一个任务，只填标题即可…', quickCreate: '记录任务', creating: '正在记录…', advancedCreate: '详细创建', createTitle: '创建任务', create: '创建任务', created: '任务已创建',
+  loading: '正在加载任务…', loadFailed: '任务加载失败', retry: '重试', loadMore: '加载更多', loadingMore: '正在加载…',
+  inboxEmpty: '收集箱暂时没有任务', inboxEmptyHelp: '用上方输入框记录想法，之后再整理状态和期限。',
+  todayEmpty: '今天没有待处理的任务', todayEmptyHelp: '今天到期、逾期或已安排工作块的任务会显示在这里。',
+  allEmpty: '还没有任务', allEmptyHelp: '用上方输入框记录第一项研究工作。', filteredEmpty: '没有符合条件的任务', filteredEmptyHelp: '调整筛选条件，或清除筛选后再试。',
+  search: '搜索任务', searchPlaceholder: '搜索标题或备注', allTypes: '全部类型', allStatuses: '全部状态', allPriorities: '全部优先级', allProjects: '全部课题', allDue: '全部期限', dueToday: '今天到期', overdue: '已逾期', noDue: '无截止日期', dueFrom: '截止日期从', dueTo: '截止日期至', clearFilters: '清除筛选', showArchived: '已归档', activeTasks: '未归档',
+  type: '任务类型', status: '状态', priority: '优先级', project: '所属课题', noProject: '不关联课题', duration: '预计时长（分钟）', note: '备注', externalUrl: '外部链接',
+  types: { experiment: '实验', paper_reading: '论文阅读', learning: '学习', research: '研究', meeting_prep: '会议准备', personal: '个人', other: '其他' },
+  statuses: { inbox: '收集箱', todo: '待办', in_progress: '进行中', done: '已完成', canceled: '已取消' }, priorities: { low: '低', normal: '普通', high: '高' },
+  deadline: '截止时间', deadlineKind: '期限类型', none: '不设置', dateOnly: '仅日期', instant: '精确时刻', date: '截止日期', instantAt: '截止时刻（含 UTC 或偏移）', timezone: '来源时区', instantHelp: '例如 2026-11-10T23:59:59+08:00。精确时刻保留秒和来源时区；不会自动创建工作块。',
+  complete: '完成', reopen: '重新打开', archive: '归档', archiveDone: '任务已归档', completed: '任务已完成', reopened: '任务已重新打开', save: '保存任务', saving: '正在保存…', saved: '任务已保存', invalidInput: '请检查标题、日期、链接和时长；精确时刻需包含 UTC 或偏移。',
+  back: '返回全部任务', detailLoading: '正在加载任务详情…', notFound: '找不到这项任务', notFoundHelp: '任务可能已被删除，或当前账户没有访问权限。', refresh: '刷新最新版本', version: '版本', scheduleNote: '截止时间与工作块分别保存。调整期限不会移动已安排的工作时间。',
+  remove: '删除任务', confirmRemove: '确认删除任务', removeHelp: '删除后任务将从列表中隐藏，可在 24 小时内恢复。', cancel: '取消', removing: '正在删除…', removed: '任务已删除', undo: '撤销', restored: '任务已恢复',
+  projectManage: '管理课题', projectName: '课题名称', projectCreate: '创建课题', projectCreated: '课题已创建', projectRename: '重命名', projectSave: '保存名称', projectSaved: '课题已更新', projectRemove: '删除课题', projectRemoved: '课题已删除', projectRemoveHelp: '删除课题只会移除任务关联，不会删除任务。', projectEmpty: '还没有课题', projectEmptyHelp: '课题用于整理研究方向；任务也可以不关联课题。',
+  detail: '查看详情', completedGroup: '今天已完成', overdueGroup: '逾期任务', dueGroup: '今天的任务', projectUnavailable: '课题列表加载失败', filterLabel: '任务筛选', confirm: '确认',
 };

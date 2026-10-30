@@ -26,3 +26,38 @@ export interface ApiError {code:string;message:string;fieldErrors?:Record<string
 export interface CursorPage<T> {items:T[];nextCursor:string|null}
 export const LoginSchema=z.object({username:z.string().min(1).max(32),password:z.string().min(1).max(128)}).strict();
 export const PreferencesPatchSchema=z.object({timezone:z.string().min(1).max(64),workStart:z.string(),workEnd:z.string(),notify:z.boolean(),quiet:z.boolean(),ai:z.boolean(),proactive:z.boolean()}).partial().strict();
+
+export const ExpectedVersionSchema = z.object({ expectedVersion: z.number().int().min(1) }).strict();
+export const UpdateTaskSchema = CreateTaskSchema.partial().extend({
+  status: TaskStatusSchema.optional(), expectedVersion: z.number().int().min(1),
+}).strict();
+export const RescheduleTaskSchema = ExpectedVersionSchema.extend({
+  scope: z.enum(['deadline', 'blocks', 'both']), due: TaskDueSchema,
+}).strict();
+export const TaskListSchema = z.object({
+  view: z.enum(['all', 'inbox', 'today']).default('all'),
+  status: TaskStatusSchema.optional(), type: TaskTypeSchema.optional(),
+  priority: z.enum(['low', 'normal', 'high']).optional(),
+  projectId: z.string().uuid().optional(), q: z.string().trim().max(200).optional(),
+  dueFrom: localDate.optional(), dueTo: localDate.optional(),
+  due: z.enum(['today', 'overdue', 'none']).optional(),
+  archived: z.enum(['true', 'false']).default('false'),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  cursor: z.string().min(1).max(512).optional(),
+}).strict().refine(value => !value.dueFrom || !value.dueTo || value.dueFrom <= value.dueTo, 'Invalid date range');
+export const CreateProjectSchema = z.object({ name: z.string().trim().min(1).max(100) }).strict();
+export const UpdateProjectSchema = CreateProjectSchema.extend({ expectedVersion: z.number().int().min(1) }).strict();
+export const ProjectListSchema = z.object({ limit: z.coerce.number().int().min(1).max(100).default(100), cursor: z.string().min(1).max(512).optional() }).strict();
+export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>;
+export type TaskListInput = z.infer<typeof TaskListSchema>;
+export type RescheduleTaskInput = z.infer<typeof RescheduleTaskSchema>;
+export interface ScheduleBlockDto { id: string; startAt: string; endAt: string; timezone: string; version: number }
+export interface TaskDto {
+  id: string; title: string; type: z.infer<typeof TaskTypeSchema>; status: TaskStatus;
+  priority: 'low' | 'normal' | 'high'; due: TaskDue; durationMinutes: number | null;
+  projectId: string | null; note: string; externalUrl: string | null;
+  createdAt: string; updatedAt: string; completedAt: string | null;
+  archivedAt: string | null; deletedAt: string | null; version: number;
+  scheduleBlocks: ScheduleBlockDto[];
+}
+export interface ProjectDto { id: string; name: string; version: number; createdAt: string; updatedAt: string }

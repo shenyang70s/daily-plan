@@ -46,11 +46,11 @@ function SessionWorkspace() {
   if (me.isPending) return <main className="setup"><p role="status">{text.checking}</p></main>;
   if (!me.data && me.isError) return <main className="setup"><h1>{text.unavailable}</h1><button onClick={() => void me.refetch()}>{text.retry}</button></main>;
   if (!me.data) return <SignInPage message={sessionMessage} onSignedIn={() => { setSessionMessage(''); void client.invalidateQueries({ queryKey: ['me'] }); }} />;
-  return <AppShell key={me.data.user.id} user={me.data.user} timezone={me.data.preferences.timezone} route={route} pathname={pathname}
+  return <ToastProvider key={me.data.user.id}><AppShell user={me.data.user} timezone={me.data.preferences.timezone} route={route} pathname={pathname}
     onLogout={() => logout.mutate()} loggingOut={logout.isPending} logoutError={logout.isError ? logout.error.message : undefined}>
     {me.isError && <p className="error" role="alert">{text.unavailable} <button onClick={() => void me.refetch()}>{text.retry}</button></p>}
     <RoutePage route={route} userId={me.data.user.id} username={me.data.user.username} preferences={me.data.preferences} onSaved={() => void client.invalidateQueries({ queryKey: ['me'] })} />
-  </AppShell>;
+  </AppShell></ToastProvider>;
 }
 
-export function App() { return <ToastProvider><SessionWorkspace /></ToastProvider>; }
+export function App() { return <SessionWorkspace />; }

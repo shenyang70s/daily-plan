@@ -88,7 +88,9 @@ tests/e2e/                # 登录后的关键用户闭环
 - Task 2：SQLite 迁移、短事务、外键/WAL、有界写锁、正式 better-sqlite3 驱动均已验证。Task 3 的用户名/口令迁移采用新增 SQL，不修改历史 migration。PT/IANA 夏令时归一化适配仍待完成，固定偏移工具会拒绝未支持的 PT。
 - Task 3：用户名/口令登录、退出、12 小时会话、Cookie、CSRF、失败限流、用户偏好 API、账号创建 CLI 和 React 登录/偏好页面已有实现。真实 SQLite 服务测试及 NestJS 路由测试通过；浏览器流程仍待验收，不标记 Staging 完成。
 - 基础检查为 `npm run test:foundation`；正式驱动/认证集成为 `corepack pnpm test:integration`。测试使用隔离临时库，不创建演示生产账号。
-- Task 4–14：未开始；当前登录后的页面明确提示任务管理尚未开放，不使用假任务或模拟模型替代正式实现。
+- Task 4：应用壳层、正式路由、页面导航搜索、通知入口、分组设置、模态弹窗和提示条已实现；本地真实浏览器已验证登录与偏好、导航和历史、生产深链刷新、焦点与键盘，以及 1440、1180、900、600 px 布局。业务通知数据和 Staging 仍待接入/验收。
+- Task 5：任务与课题 CRUD、Today/Inbox/Tasks、详情编辑、筛选与游标分页、完成/重新打开/归档、软删除确认和 24 小时恢复已实现。写入在短事务中校验所有权、版本和幂等键；课题删除保留任务并递增受影响任务版本。Today 采用用户时区，包含未排程但今天到期的任务；改期限不创建或移动工作块。共享包、API 与 Web 构建通过；任务 HTTP 集成和既有认证/页面回退检查通过，Web 的 5 项检查通过。隔离 SQLite 与真实浏览器验证了完整任务/课题流程、刷新恢复、筛选、409 保留输入、删除撤销、响应丢失后幂等重试、账户隔离与四种窗口尺寸。未使用模拟业务数据替代正式实现。
+- Task 6–14：未开始；日历/工作块编辑、投稿、通知调度和 AI 功能仍待接入。地区时区的本地时间归一化与 Staging 验收继续保持待完成。
 
 ## 阶段与验收里程碑
 
@@ -145,20 +147,20 @@ tests/e2e/                # 登录后的关键用户闭环
 
 **Interfaces:** `apiRequest<T>(path:string, options:RequestInit):Promise<T>` 统一处理 401、API 错误、409 和中止；Query key 使用 `[resource,userId,filters]`，退出清理用户缓存。路由遵循前端规范：`/today`、`/inbox`、`/tasks`、`/tasks/:taskId`、`/calendar`、`/submissions`、`/submissions/:submissionId`、`/settings/*`。
 
-- [ ] 将原型的 Token、布局和交互约束迁入 React；路由显示实际加载/错误/空状态，尚未实现的数据页不能显示伪造成功。
-- [ ] 将全局搜索和通知入口接入壳层；Dialog 管理焦点、Esc 和键盘循环；中文文案集中管理。
-- [ ] 运行 `pnpm --filter @research/web build`；浏览器在 1440、1180、900 px 检查布局、导航、键盘焦点和浏览器前进/后退。无浏览器工具时明确记录未验证项，不以截图猜测通过。
+- [x] 将原型的 Token、布局和交互约束迁入 React；路由显示实际加载/错误/空状态，尚未实现的数据页不能显示伪造成功。
+- [x] 将页面导航搜索和通知入口接入壳层；Dialog 管理焦点、Esc 和键盘循环；中文文案集中管理。通知数据等待 Task 8。
+- [x] 运行 `pnpm --filter @research/web build`；真实浏览器在 1440、1180、900、600 px 检查布局、导航、键盘焦点和浏览器前进/后退，以及生产深链刷新。
 - [ ] 提交：`feat: implement application shell and routes`。
 
 ## Task 5：任务 CRUD、Today、Inbox 与 Tasks
 
-**Files:** 创建 `apps/api/src/modules/tasks/{tasks.controller,tasks.service,projects.controller}.ts`、`packages/persistence/src/{task,project,idempotency}.repository.ts`、`apps/api/src/common/idempotency.interceptor.ts`、`apps/web/src/features/tasks/{TodayPage,InboxPage,TasksPage,TaskDetailPanel,TaskQuickCreate}.tsx`、`apps/web/src/components/TaskRow.tsx`；测试 `apps/api/test/integration/tasks.spec.ts`。
+**Files:** 创建 `apps/api/src/modules/tasks/{tasks.controller,tasks.service,tasks.module,projects.controller,pagination}.ts`、`packages/persistence/src/{task,project,idempotency}.repository.ts`、`apps/api/src/common/idempotency.ts`、`apps/web/src/features/tasks/{TasksPage,TaskDetailPanel,TaskQuickCreate,TaskEditor,TaskActions,ProjectManager}.tsx`、`apps/web/src/components/TaskRow.tsx`、`apps/web/src/styles/tasks.css`；测试 `apps/api/test/integration/tasks.test.mjs`。Today/Inbox/Tasks 复用按 view 参数区分的 TasksPage。
 
-**Interfaces:** 使用设计第 8.2 章任务路由；补充 `/projects` 基础 CRUD。`TasksService.create(ctx:SessionContext,input:CreateTaskInput,key:string):Promise<TaskDto>`；`reschedule` 显式传递 `scope:'deadline'|'blocks'|'both'` 和 `expectedVersion`。只填标题创建 Inbox；未安排且今天到期的任务也出现在 Today。软删除与撤销通过受鉴权的 `POST /tasks/{id}/restore` 补充契约。
+**Interfaces:** 使用设计第 8.2 章任务路由；补充 `/projects` 基础 CRUD。`TasksService.create(ctx:SessionContext,input:CreateTaskInput,key:string):TaskDto` 使用同步 SQLite 短事务，控制器直接返回提交结果；幂等逻辑放在事务内部，避免拦截器使响应记录与写入分开提交。`reschedule` 显式传递 `scope:'deadline'|'blocks'|'both'` 和 `expectedVersion`；本任务实现 deadline，blocks/both 在 Task 6 前明确拒绝。只填标题创建 Inbox；未安排且今天到期的任务也出现在 Today。软删除与撤销通过受鉴权的 `POST /tasks/{id}/restore` 补充契约，恢复期限 24 小时。
 
-- [ ] 为标题必填、任务筛选/分页、同键重复创建返回同 ID、不同请求体复用键拒绝、跨用户 ID 返回 404、旧版本返回 409 编写并运行失败用例。
-- [ ] 实现领域服务和页面：快速新增、类型/状态/优先级/日期过滤、完成/恢复、归档、详情编辑、软删除确认与服务端撤销；失败时回滚乐观状态，写入后重载能恢复数据。
-- [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/tasks.spec.ts`；用浏览器核对 Today 仅展示相关任务、收集箱空状态保留快速输入且无额外添加按钮。
+- [x] 为标题必填、任务筛选/分页、同键重复创建返回同 ID、不同请求体复用键拒绝、跨用户 ID 返回 404、旧版本返回 409 编写并运行失败用例。
+- [x] 实现领域服务和页面：快速新增、类型/状态/优先级/日期过滤、完成/恢复、归档、详情编辑、软删除确认与服务端撤销；界面等待提交结果，不提前伪造成功，失败保留输入。请求重试复用幂等键，成功后刷新相关用户的缓存。
+- [x] 运行 `corepack pnpm build:shared`、API/Web 构建、`node --test apps/api/test/integration/{tasks,auth-http,web-routes}.test.mjs` 和 `corepack pnpm --filter @research/web test`；真实浏览器核对 Today 仅展示相关任务、收集箱空状态保留快速输入且无额外添加按钮，并验证完整任务/课题流程与响应丢失后的重试。
 - [ ] 提交：`feat: deliver persistent task workflow`。
 
 ## Task 6：日历事件、工作块与延期
