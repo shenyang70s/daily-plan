@@ -1,7 +1,13 @@
 import { Temporal } from '@js-temporal/polyfill';
 
 export function calendarTimezone(timezone: string): string {
-  const zone = timezone === 'PT' ? 'America/Los_Angeles' : ['AoE', 'UTC-12'].includes(timezone) ? 'Etc/GMT+12' : timezone === 'UTC' ? 'Etc/UTC' : timezone;
+  let zone = timezone === 'PT' ? 'America/Los_Angeles' : ['AoE', 'UTC-12'].includes(timezone) ? 'Etc/GMT+12' : timezone === 'UTC' ? 'Etc/UTC' : timezone;
+  const fixed = /^UTC([+-])(\d{1,2})(?::([0-5]\d))?$/.exec(zone);
+  if (fixed) {
+    const hours = Number(fixed[2]), minutes = Number(fixed[3] ?? 0);
+    if (hours > 14 || hours === 14 && minutes !== 0) throw new RangeError('Invalid UTC offset');
+    zone = `${hours || minutes ? fixed[1] : '+'}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
   Temporal.Instant.fromEpochMilliseconds(0).toZonedDateTimeISO(zone);
   return zone;
 }

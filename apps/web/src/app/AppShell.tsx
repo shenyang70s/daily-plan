@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { NotificationCenter, useNotificationStatus } from '../features/notifications/NotificationCenter';
 import { Dialog } from '../components/Dialog';
 import { EmptyState } from '../components/EmptyState';
 import { Icon } from '../components/Icon';
@@ -38,6 +39,7 @@ interface AppShellProps {
 
 export function AppShell({ user, timezone, route, pathname, onLogout, loggingOut, logoutError, children }: AppShellProps) {
   const [panel, setPanel] = useState<'search' | 'notifications' | 'navigation' | null>(null);
+  const unread = useNotificationStatus(user.id);
   const content = useRef<HTMLElement>(null);
   const pageTitle = text.pageLabels[route.page];
   const title = route.page === 'settings' ? text.sectionLabels[route.section] : 'resourceId' in route && route.resourceId ? route.page === 'tasks' ? text.taskDetail : route.page === 'calendar' ? text.pageLabels.calendar : text.submissionDetail : pageTitle;
@@ -75,7 +77,7 @@ export function AppShell({ user, timezone, route, pathname, onLogout, loggingOut
         <div className="breadcrumbs"><span>{text.workspaceName}</span><span aria-hidden="true">/</span><strong>{pageTitle}</strong></div>
         <div className="topbar-actions">
           <button type="button" className="search-trigger" aria-haspopup="dialog" onClick={() => setPanel('search')}><Icon name="search" /><span>{text.search}</span><kbd>⌘ / Ctrl K</kbd></button>
-          <button type="button" className="icon-button" aria-label={text.notifications} aria-haspopup="dialog" onClick={() => setPanel('notifications')}><Icon name="bell" /></button>
+          <button type="button" className="icon-button notification-trigger" aria-label={text.notifications} aria-haspopup="dialog" onClick={() => setPanel('notifications')}><Icon name="bell" />{unread > 0 && <span className="notification-badge" aria-label={`未读 ${unread}`}>{unread > 99 ? '99+' : unread}</span>}</button>
         </div>
       </header>
       <div className="shell-columns">
@@ -91,7 +93,7 @@ export function AppShell({ user, timezone, route, pathname, onLogout, loggingOut
       </div>
     </div>
     {panel === 'search' && <Search onClose={() => setPanel(null)} />}
-    {panel === 'notifications' && <Dialog title={text.notifications} onClose={() => setPanel(null)}><EmptyState icon="bell" title={text.notificationsPending} description={text.notificationsHelp} /></Dialog>}
+    {panel === 'notifications' && <NotificationCenter userId={user.id} timezone={timezone} onClose={() => setPanel(null)} />}
     {panel === 'navigation' && <Dialog title={text.navigation} onClose={() => setPanel(null)}>{navigation}<div className="mobile-profile"><span>{user.username}</span><button type="button" disabled={loggingOut} onClick={onLogout}>{text.logout}</button></div></Dialog>}
   </div>;
 }

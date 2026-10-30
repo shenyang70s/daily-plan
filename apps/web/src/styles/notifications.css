@@ -1,0 +1,19 @@
+.reminder-panel { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 16px; }
+.reminder-heading, .notification-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.reminder-heading h3 { margin: 0; font-size: 14px; }
+.reminder-list, .notification-list { list-style: none; padding: 0; margin: 12px 0; }
+.reminder-list li, .notification-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.reminder-list strong { font-size: 12px; }
+.reminder-list p { font-size: 12px; margin: 6px 0; }
+.reminder-actions, .notification-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.reminder-form fieldset { display: grid; gap: 8px; border: 0; padding: 0; min-width: 0; }
+.reminder-form input, .reminder-form select { width: 100%; min-width: 0; box-sizing: border-box; }
+.reminder-form label { font-size: 12px; margin-top: 8px; }
+.notification-list li > div:first-child { flex: 1 1 260px; min-width: 0; }
+.notification-list a { font-weight: 600; }
+.notification-list p { font-size: 12px; line-height: 1.8; }
+.notification-list time { font-size: 11px; color: var(--muted); }
+.notification-read { opacity: .7; }
+.notification-empty { text-align: center; padding: 32px 0; color: var(--muted); }
+.notification-trigger { position: relative; }
+.notification-badge { position: absolute; right: -8px; top: -4px; font-size: 10px; padding: 1px 4px; border-radius: 10px; color: white; background: var(--accent, #2768ee); }

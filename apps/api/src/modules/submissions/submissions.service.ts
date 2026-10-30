@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { calendarTimezone, normalizeDeadline, nextMilestone } from '@research/domain';
-import { submissionRecord, submissionRecords, milestoneRecord, milestoneRecords, insertSubmissionRecord, updateSubmissionRecord } from '@research/persistence';
+import { submissionRecord, submissionRecords, milestoneRecord, milestoneRecords, insertSubmissionRecord, updateSubmissionRecord, submissionConferenceSource } from '@research/persistence';
 import type { Database, Transaction, Row, SqlValue } from '@research/persistence';
-import type { CreateSubmissionInput, UpdateSubmissionInput, SubmissionListInput, CreateMilestoneInput, UpdateMilestoneInput, SubmissionDto, MilestoneDto } from '@research/contracts';
+import type { ConferenceCandidate, CreateSubmissionInput, UpdateSubmissionInput, SubmissionListInput, CreateMilestoneInput, UpdateMilestoneInput, SubmissionDto, MilestoneDto } from '@research/contracts';
 import type { SessionContext, IdentityService } from '../identity/identity.service.js';
 import { AppError } from '../../common/app-error.js';
 import { writeResource } from '../../common/idempotency.js';
@@ -30,7 +30,9 @@ export class SubmissionsService {
   }
   private dto(reader: Reader, ctx: SessionContext, row: Row): SubmissionDto {
     const milestones = milestoneRecords(reader, ctx.userId, String(row.id)).map(item => this.milestoneDto(item));
-    return { id: String(row.id), name: String(row.name), year: row.year == null ? null : Number(row.year), round: text(row.round), stage: row.stage as SubmissionDto['stage'], submissionUrl: text(row.submission_url), draftUrl: text(row.draft_url), nextAction: String(row.next_action), archivedAt: row.archived_at == null ? null : iso(row.archived_at), createdAt: iso(row.created_at), updatedAt: iso(row.updated_at), version: Number(row.version), milestones, nextMilestone: row.archived_at != null ? null : nextMilestone(milestones, this.now(), this.identity.getPreferences(ctx).timezone) };
+    const imported = submissionConferenceSource(reader, ctx.userId, String(row.id));
+    const candidate = imported ? (JSON.parse(String(imported.snapshot_json)) as { candidate: ConferenceCandidate }).candidate : null;
+    return { id: String(row.id), name: String(row.name), year: row.year == null ? null : Number(row.year), round: text(row.round), stage: row.stage as SubmissionDto['stage'], submissionUrl: text(row.submission_url), draftUrl: text(row.draft_url), nextAction: String(row.next_action), archivedAt: row.archived_at == null ? null : iso(row.archived_at), createdAt: iso(row.created_at), updatedAt: iso(row.updated_at), version: Number(row.version), conferenceSource: candidate ? { candidateId: candidate.id, conferenceId: candidate.conferenceId, title: candidate.title, year: candidate.year, round: candidate.round, commitSha: candidate.commitSha, filePath: candidate.filePath, fileUrl: candidate.fileUrl, fetchedAt: candidate.fetchedAt } : null, milestones, nextMilestone: row.archived_at != null ? null : nextMilestone(milestones, this.now(), this.identity.getPreferences(ctx).timezone) };
   }
   get(ctx: SessionContext, id: string) { return this.dto(this.db, ctx, this.submission(this.db, ctx, id)); }
   list(ctx: SessionContext, query: SubmissionListInput) {
@@ -38,11 +40,13 @@ export class SubmissionsService {
     return paginate(items, query.limit, query.cursor);
   }
   create(ctx: SessionContext, input: CreateSubmissionInput, key: string) {
-    return writeResource(this.db, ctx.userId, 'submissions:create', key, input, tx => {
-      const id = randomUUID(), now = this.now();
-      insertSubmissionRecord(tx, 'submission', { id, user_id: ctx.userId, name: input.name, year: input.year, round: input.round, stage: input.stage, submission_url: input.submissionUrl, draft_url: input.draftUrl, next_action: input.nextAction, created_at: now, updated_at: now });
-      return this.dto(tx, ctx, this.submission(tx, ctx, id));
-    });
+    return writeResource(this.db, ctx.userId, 'submissions:create', key, input, tx => this.createInTransaction(tx, ctx, input));
+  }
+  getInTransaction(tx: Transaction, ctx: SessionContext, id: string) { return this.dto(tx, ctx, this.submission(tx, ctx, id)); }
+  createInTransaction(tx: Transaction, ctx: SessionContext, input: CreateSubmissionInput): SubmissionDto {
+    const id = randomUUID(), now = this.now();
+    insertSubmissionRecord(tx, 'submission', { id, user_id: ctx.userId, name: input.name, year: input.year, round: input.round, stage: input.stage, submission_url: input.submissionUrl, draft_url: input.draftUrl, next_action: input.nextAction, created_at: now, updated_at: now });
+    return this.dto(tx, ctx, this.submission(tx, ctx, id));
   }
   update(ctx: SessionContext, id: string, input: UpdateSubmissionInput, key: string) {
     return writeResource(this.db, ctx.userId, `submissions:${id}:update`, key, input, tx => {
@@ -85,12 +89,13 @@ export class SubmissionsService {
   }
   private bumpParent(tx: Transaction, ctx: SessionContext, id: string) { updateSubmissionRecord(tx, 'submission', ctx.userId, id, { updated_at: this.now() }); }
   createMilestone(ctx: SessionContext, id: string, input: CreateMilestoneInput, key: string) {
-    return writeResource(this.db, ctx.userId, `submissions:${id}:milestone:create`, key, input, tx => {
-      const submission = this.submission(tx, ctx, id, true); this.version(submission, input.expectedSubmissionVersion);
-      const milestoneId = randomUUID(), now = this.now();
-      insertSubmissionRecord(tx, 'milestone', { id: milestoneId, user_id: ctx.userId, submission_id: id, ...this.milestoneValues(input), created_at: now, updated_at: now });
-      this.bumpParent(tx, ctx, id); return this.milestoneDto(this.milestone(tx, ctx, milestoneId));
-    });
+    return writeResource(this.db, ctx.userId, `submissions:${id}:milestone:create`, key, input, tx => this.createMilestoneInTransaction(tx, ctx, id, input));
+  }
+  createMilestoneInTransaction(tx: Transaction, ctx: SessionContext, id: string, input: CreateMilestoneInput): MilestoneDto {
+    const submission = this.submission(tx, ctx, id, true); this.version(submission, input.expectedSubmissionVersion);
+    const milestoneId = randomUUID(), now = this.now();
+    insertSubmissionRecord(tx, 'milestone', { id: milestoneId, user_id: ctx.userId, submission_id: id, ...this.milestoneValues(input), created_at: now, updated_at: now });
+    this.bumpParent(tx, ctx, id); return this.milestoneDto(this.milestone(tx, ctx, milestoneId));
   }
   updateMilestone(ctx: SessionContext, id: string, input: UpdateMilestoneInput, key: string) {
     return writeResource(this.db, ctx.userId, `milestones:${id}:update`, key, input, tx => {

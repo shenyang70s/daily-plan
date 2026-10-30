@@ -92,7 +92,8 @@ tests/e2e/                # 登录后的关键用户闭环
 - Task 5：任务与课题 CRUD、Today/Inbox/Tasks、详情编辑、筛选与游标分页、完成/重新打开/归档、软删除确认和 24 小时恢复已实现。写入在短事务中校验所有权、版本和幂等键；课题删除保留任务并递增受影响任务版本。Today 采用用户时区，包含未排程但今天到期的任务；改期限不创建或移动工作块。共享包、API 与 Web 构建通过；任务 HTTP 集成和既有认证/页面回退检查通过，Web 的 5 项检查通过。隔离 SQLite 与真实浏览器验证了完整任务/课题流程、刷新恢复、筛选、409 保留输入、删除撤销、响应丢失后幂等重试、账户隔离与四种窗口尺寸。未使用模拟业务数据替代正式实现。
 - Task 6：日/周/月日历、日期/精确期限读模型、固定事件及关联准备任务、已有任务工作块、新任务与工作块原子创建、编辑/取消和详情深链已实现。写入事务内检查冲突，签名确认凭据绑定候选时间、当前用户和冲突版本；旧确认拒绝且无部分写入。工作块与期限分别保存，Task reschedule 已支持 deadline/blocks/both。Temporal 0.5.1 已锁定，日历按需加载。共享包/API/Web 构建、地区时区 2 项、原领域 5 项、Web 7 项与日历/任务/认证/页面路由 4 项定向检查通过。真实浏览器验证创建、准备任务原子性、相接不冲突、变化后的冲突重新确认、日周月、深链刷新、工作块编辑/取消不改期限、切换时区、夏令时拒绝及明确偏移、跨用户隔离和四种尺寸；截图检查后修复已占时段新增入口与桌面周日列裁切。
 - Task 7：投稿与独立节点 CRUD、阶段更新、归档/恢复、来源与核实信息、待定/纯日期/精确时刻、服务器标准化的节点修改预览和确认已实现。归档保留节点，阶段更新不改期限，节点写入递增父记录版本；时区使用 Temporal，保留 AoE/PT 来源与秒精度。共享领域规则负责下一节点、倒计时与统一格式化，投稿列表/详情和日历共用，通知待 Task 8 使用。日历纳入投稿节点，点击跳转投稿详情。共享包/API/Web 构建通过，投稿 HTTP 与日历/认证回归、节点领域检查共 5 项通过，Web 7 项检查通过。隔离 SQLite 与真实浏览器验证完整投稿/节点流程、未确认不写入、取消与确认、版本冲突保留输入、阶段与期限分离、上海/洛杉矶同一瞬间、日历跳转、AoE/PT/夏令时、已截止、四种尺寸、归档恢复、节点删除、筛选与账户隔离；截图已检查。Staging 待验收。
-- Task 8–14：未开始；可靠提醒、通知与 AI 仍待接入，Staging 验收保持待完成。
+- Task 8：应用内提醒闭环已实现：持久化 Outbox、进程内调度、租约恢复、去重、失败重试、静音延后、目标状态复核与改期重算；三个目标入口、通知已读/稍后提醒、SSE 和 GET 回补已接入。Web Push 和 Staging 验收待完成。
+- Task 9–10、12–14：未开始；真实 AI、提案和后续管理能力仍待实现。Task 11 的顶会新建选择已部分实现，已有投稿更新比较待完成。
 
 ## 阶段与验收里程碑
 
@@ -189,12 +190,16 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 8：持久化提醒、通知中心与进程内调度
 
+**本轮实现范围：** 先交付应用内提醒闭环，Web Push 保持后续项。沿用现有 service 内同步事务约定，不创建空壳 repository/outbox 模块。契约保存在 `packages/contracts/src/index.ts`；新增 `005_reminder_delivery.sql`、`reminder-target.ts`、`reminders.module.ts`、调度/投递实现和通知前端。绝对时刻不随目标改期；待发相对提醒跟随目标期限；已发送提醒不自动重放。`quiet` 现有布尔偏好解释为用户时区 22:00–08:00，`notify=false` 暂停派发并保留待发送项。日期型期限要求用户填写时刻和时区，不猜测午夜。
+
+定向验证：`node --test apps/api/test/integration/reminder-delivery.test.mjs apps/api/test/integration/reminder-http.test.mjs` 五项通过，覆盖去重、重算、跳过完成目标、静音、暂停与恢复、SQLite 重开后租约恢复、有限重试、过期任务拒绝投递、鉴权/CSRF/所有权/版本和事件/节点入口。通知正文复用领域格式化，保留用户本地和节点来源时区。真实 Chromium 验证提醒增改取消、关闭浏览器后派发、SSE、已读、稍后提醒、目标跳转、三个入口及断线 GET 回补；四种尺寸无横向溢出，截图已检查。
+
 **Files:** 创建 `apps/api/src/modules/reminders/{reminders.controller,notifications.controller,reminders.service}.ts`、`packages/persistence/src/{reminder,outbox,notification}.repository.ts`、`apps/api/src/background/{scheduler,outbox,delivery,push}.ts`、`apps/web/src/features/notifications/{NotificationCenter,ReminderEditor}.tsx`；测试 `apps/api/test/integration/reminder-delivery.spec.ts`。
 
 **Interfaces:** 第 8.5 章 API；`ReminderJob={reminderId:string;scheduledFor:string;deliveryKey:string}`。`deliveryKey` 由 reminder、触发时间和渠道组成并受唯一约束保护；`deliver(job):Promise<'sent'|'skipped'|'retry'>`。业务事务只写提醒与 Outbox；进程内 Scheduler 定期扫描到期项，在短事务中通过条件 UPDATE 领取，记录 `status`、`lease_until`、`attempts`、`next_attempt_at`。投递在事务外执行，完成后短事务确认；过期租约重启可恢复，失败采用有上限退避并进入可查询失败状态。
 
-- [ ] 用可注入 Clock 验证到期触发、用户静音、已完成/取消目标跳过、同一 job 重复执行不新增通知，以及领取后崩溃仍可恢复；先运行用例确认失败。
-- [ ] 实现与 NestJS 生命周期绑定的单个 Scheduler、SQLite Outbox、应用内通知、已读/稍后提醒与 SSE；轮询完成后再启动下一轮，避免重叠扫描。定时器只负责唤醒，执行状态持久化，不使用内存队列作为唯一记录。断开 SSE 后以 GET 回补，不能只依赖长连接。发送前再次检查目标状态与版本，重算日期变更后的待触发提醒。纯日期截止仅在用户明确设置提醒时刻和时区后计算触发时间，不自动推导午夜提醒。
+- [x] 用可注入 Clock 验证到期触发、用户静音、已完成/取消目标跳过、同一 job 重复执行不新增通知，以及领取后崩溃仍可恢复；先运行用例确认失败。
+- [x] 实现与 NestJS 生命周期绑定的单个 Scheduler、SQLite Outbox、应用内通知、已读/稍后提醒与 SSE；轮询完成后再启动下一轮，避免重叠扫描。定时器只负责唤醒，执行状态持久化，不使用内存队列作为唯一记录。断开 SSE 后以 GET 回补，不能只依赖长连接。发送前再次检查目标状态与版本，重算日期变更后的待触发提醒。纯日期截止仅在用户明确设置提醒时刻和时区后计算触发时间，不自动推导午夜提醒。
 - [ ] 为目标浏览器提供可选 Web Push：用户显式授权后绑定 endpoint，失效 endpoint 停用；未授权仍能查看应用内通知。不把外部 Push 供应商的投递等同用户已阅读。应用内通知由唯一键保证去重；外部 Push 采用至少一次重试，使用稳定消息标识辅助去重，不承诺远端严格只投递一次。
 - [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/reminder-delivery.spec.ts`；Staging 关闭浏览器并重启应用服务，核对到期提醒仍被处理且通知不重复。
 - [ ] 提交：`feat: deliver durable reminders and notifications`。
@@ -222,6 +227,8 @@ tests/e2e/                # 登录后的关键用户闭环
 - [ ] 提交：`feat: execute confirmed AI proposals atomically`。
 
 ## Task 11：CCF-Deadlines 快照与手动导入
+
+**部分实现（用户新增需求）：** 新建投稿默认从固定 ccfddl/ccf-deadlines 仓库按 SHA 读取相关 A 类会议，支持方向/年份/关键词筛选、节点预览、来源快照、原子创建和重复选择保护。六小时按需缓存及真实备用快照已接入，不接受任意抓取 URL。详见 [顶会选择实施记录](2026-10-30-ccf-conference-picker.md)。已有投稿的上游变更比较、提案确认和提醒重算仍待实现，下列完整任务保持未完成。
 
 **Files:** 创建 `apps/api/src/modules/conferences/{conference-source,conference-import.service,conferences.controller}.ts`、`packages/persistence/src/conference-source.repository.ts`、`packages/contracts/src/conference.ts`、`infra/migrations/004_conference_sources.sql`、`apps/web/src/features/submissions/ConferenceImportPreview.tsx`、`apps/api/test/fixtures/conferences/{iclr,cvpr,unknown}.yml`；测试 `apps/api/test/integration/conference-import.spec.ts`。
 

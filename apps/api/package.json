@@ -14,12 +14,13 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
-    "@research/persistence": "workspace:*",
-    "@research/domain": "workspace:*",
     "@research/contracts": "workspace:*",
+    "@research/domain": "workspace:*",
+    "@research/persistence": "workspace:*",
     "better-sqlite3": "^12.0.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13"

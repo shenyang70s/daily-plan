@@ -101,4 +101,39 @@ export type SubmissionListInput = z.infer<typeof SubmissionListSchema>;
 export type CreateMilestoneInput = z.infer<typeof CreateMilestoneSchema>;
 export type UpdateMilestoneInput = z.infer<typeof UpdateMilestoneSchema>;
 export interface MilestoneDto { id: string; submissionId: string; kind: MilestoneKind; due: TaskDue; sourceTimezone: string | null; sourceUrl: string | null; officialUrl: string | null; verifiedAt: string | null; createdAt: string; updatedAt: string; version: number }
-export interface SubmissionDto { id: string; name: string; year: number | null; round: string | null; stage: SubmissionStage; submissionUrl: string | null; draftUrl: string | null; nextAction: string; archivedAt: string | null; createdAt: string; updatedAt: string; version: number; milestones: MilestoneDto[]; nextMilestone: MilestoneDto | null }
+export interface SubmissionDto { conferenceSource: ConferenceProvenance | null; id: string; name: string; year: number | null; round: string | null; stage: SubmissionStage; submissionUrl: string | null; draftUrl: string | null; nextAction: string; archivedAt: string | null; createdAt: string; updatedAt: string; version: number; milestones: MilestoneDto[]; nextMilestone: MilestoneDto | null }
+
+export type ConferenceFocus = 'systems' | 'ai' | 'edge' | 'snn';
+export interface ConferenceCandidate {
+  id: string; conferenceId: string; title: string; description: string; category: string; rank: 'A'; focuses: ConferenceFocus[];
+  year: number; editionId: string; round: string; officialUrl: string | null; eventDate: string | null; place: string | null;
+  commitSha: string; filePath: string; fileUrl: string; fetchedAt: string;
+  milestones: { kind: MilestoneKind; due: TaskDue; rawDeadline: string; sourceTimezone: string | null }[];
+  importable: boolean; issues: string[];
+}
+export interface ConferenceCatalog { items: ConferenceCandidate[]; commitSha: string; fetchedAt: string; checkedAt: string; stale: boolean }
+export interface ConferenceProvenance { candidateId: string; conferenceId: string; title: string; year: number; round: string; commitSha: string; filePath: string; fileUrl: string; fetchedAt: string }
+export const ConferenceQuerySchema = z.object({ q: z.string().trim().max(200).optional(), focus: z.enum(['systems', 'ai', 'edge', 'snn']).optional(), year: z.coerce.number().int().min(1900).max(2200).optional() }).strict();
+export const CreateConferenceSubmissionSchema = z.object({ candidateId: z.string().regex(/^[a-f0-9]{64}$/), commitSha: z.string().regex(/^[a-f0-9]{40}$/), submission: CreateSubmissionSchema }).strict();
+export type CreateConferenceSubmissionInput = z.infer<typeof CreateConferenceSubmissionSchema>;
+export interface ConferenceSubmissionResult { submission: SubmissionDto; created: boolean }
+
+export const ReminderTargetSchema = z.object({ targetType: z.enum(['task', 'event', 'milestone']), targetId: z.string().uuid() }).strict();
+const reminderTimeFields = {
+  mode: z.enum(['absolute', 'relative']), timezone: z.string().min(1).max(64),
+  at: z.string().datetime({ offset: true }).optional(), offsetMinutes: z.number().int().min(0).max(525600).optional(),
+  dateTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional(),
+};
+const validReminderTime = (v: { mode: string; at?: string | undefined; offsetMinutes?: number | undefined; dateTime?: string | undefined }) => v.mode === 'absolute' ? !!v.at && v.offsetMinutes === undefined && v.dateTime === undefined : !v.at && v.offsetMinutes !== undefined;
+export const CreateReminderSchema = ReminderTargetSchema.extend(reminderTimeFields).strict().refine(validReminderTime, 'Choose an absolute instant or relative deadline policy');
+export const UpdateReminderSchema = z.object({ ...reminderTimeFields, expectedVersion: z.number().int().min(1) }).strict().refine(validReminderTime, 'Choose an absolute instant or relative deadline policy');
+export const NotificationListSchema = z.object({ cursor: z.string().max(200).optional(), limit: z.coerce.number().int().min(1).max(100).default(30) }).strict();
+export const SnoozeNotificationSchema = z.object({ minutes: z.number().int().min(1).max(10080) }).strict();
+export type ReminderTarget = z.infer<typeof ReminderTargetSchema>;
+export type CreateReminderInput = z.infer<typeof CreateReminderSchema>;
+export type UpdateReminderInput = z.infer<typeof UpdateReminderSchema>;
+export interface ReminderDto extends ReminderTarget { id: string; mode: 'absolute' | 'relative'; timezone: string; scheduledFor: string; offsetMinutes: number; dateTime: string | null; status: 'pending' | 'sent' | 'canceled'; version: number; deliveryStatus: string | null; lastErrorCode: string | null }
+export interface NotificationDto { id: string; title: string; body: string; href: string; createdAt: string; readAt: string | null; snoozedUntil: string | null; reminderId: string | null }
+export interface NotificationPage extends CursorPage<NotificationDto> { unreadCount: number }
+
+export const EmptyInputSchema = z.object({}).strict();

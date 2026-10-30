@@ -22,3 +22,9 @@ test('calendar ranges follow local DST days, Monday weeks and 42-cell month grid
   assert.equal(time.calendarWindow('2026-10-30', 'month', 'Asia/Shanghai').dates.length, 42);
   assert.equal(time.localDateTimeAt('2026-11-11T11:59:59Z', 'Etc/GMT+12'), '2026-11-10T23:59:59');
 });
+
+test('CCF source UTC offsets normalize without treating PT as fixed UTC-8', () => {
+  assert.equal(time.normalizeDeadline({ localDateTime: '2026-10-30T23:59:59', timezone: 'UTC-8' }).at, '2026-10-31T07:59:59.000Z');
+  assert.equal(time.normalizeDeadline({ localDateTime: '2026-10-30T23:59:59', timezone: 'UTC+5:30' }).at, '2026-10-30T18:29:59.000Z');
+  assert.throws(() => time.normalizeDeadline({ localDateTime: '2026-10-30T23:59:59', timezone: 'UTC+15' }));
+});

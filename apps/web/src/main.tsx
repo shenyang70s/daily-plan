@@ -9,4 +9,5 @@ import './styles/shell.css';
 import './styles/tasks.css';
 import './styles/calendar.css';
 import './styles/submissions.css';
+import './styles/notifications.css';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></React.StrictMode>);

@@ -9,7 +9,7 @@ export const text={
  pageDescriptions:{today:'专注今天需要推进的研究工作。',inbox:'先记录想法，再决定下一步。',tasks:'在同一个地方整理和跟踪研究任务。',calendar:'把工作时间与截止日期分别安排。',submissions:'跟踪投稿阶段、重要节点和时间来源。'},
  workspaceName:'个人研究空间',navigation:'主导航',settingsNavigation:'设置导航',openMenu:'打开导航',closeMenu:'关闭导航',skipToContent:'跳到主要内容',
  search:'全局搜索',searchPlaceholder:'搜索页面名称…',searchHelp:'目前支持页面导航搜索；任务和投稿内容搜索将在对应功能开放后接入。',noSearchResults:'没有匹配的页面',noSearchResultsHelp:'试试“任务”“日历”或“设置”。',
- notifications:'通知中心',notificationsPending:'通知服务尚未开放',notificationsHelp:'提醒调度与消息列表接入后，可在这里查看和处理通知。',
+ notifications:'通知中心',
  close:'关闭',backToToday:'返回今天',notFoundTitle:'找不到这个页面',notFoundHelp:'请检查地址，或通过左侧导航进入研究空间。',
  pendingTitle:'任务管理即将接入',pendingHelp:'这里将展示保存在账户中的真实任务。当前可以先设置时区、工作时间和使用偏好。',
  calendarPending:'日历功能待接入',calendarHelp:'日历事件和工作块接入后，可在具体时段安排任务；截止日期与工作时间分别保存。',
@@ -17,8 +17,8 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿与偏好设置',contextNext:'接下来',contextUpcoming:'可靠提醒与 AI',
- notificationSettingsNote:'这里保存提醒偏好；服务端提醒派发尚未开放。',quiet:'静音模式',aiSettingsNote:'这里保存 AI 使用偏好；真实模型服务尚未接入。',proactive:'主动建议',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与通知',contextNext:'接下来',contextUpcoming:'Web Push 与 AI',
+ notificationSettingsNote:'关闭通知会暂停派发，重新开启后处理待发送提醒。静音模式按用户时区在 22:00–08:00 延后派发；已有通知始终可查看。',quiet:'静音模式',aiSettingsNote:'这里保存 AI 使用偏好；真实模型服务尚未接入。',proactive:'主动建议',
 };
 
 export const tasksText = {
@@ -68,3 +68,20 @@ export const submissionText = {
   removeMilestone: '删除节点', removeTitle: '确认删除截止节点', removeHelp: '节点及其来源将被删除，投稿记录会保留。请确认要删除的节点。', confirmRemove: '我确认删除这个节点', removeConfirm: '确认删除节点', removed: '节点已删除',
   noMilestones: '尚未设置截止节点', noMilestonesHelp: '日期尚未公布时可添加待定节点，不会被补成今天。', nextMilestone: '下一节点', nextUnknown: '暂无已知的后续节点', localTime: '当前时区', sourceTime: '来源时间', dateMeaning: '仅日期，不换算为午夜时刻', deadlineUnknown: '时间待定', passed: '已截止', dueToday: '今天截止', remainingDays: '天后截止', remaining: '距截止', dayUnit: '天', hourUnit: '时', minuteUnit: '分', secondUnit: '秒', version: '版本',
 };
+
+export const conferenceText = {
+  choose: '从 CCF-DDL 选择顶会', manual: '手动创建', loading: '正在读取 CCF-Deadlines 会议目录…', unavailable: '会议目录加载失败', retry: '重新加载目录',
+  topOnly: '仅显示相关 CCF A 类会议', focusNote: '方向标签由本应用整理，表示研究相关性，不代表会议设有 SNN 专属赛道。', focuses: { systems: '系统', ai: 'AI', edge: '边缘智能', snn: 'SNN 相关' }, all: '全部相关顶会', focus: '会议方向',
+  search: '搜索会议', searchPlaceholder: '搜索 OSDI、ICLR、NeurIPS…', year: '会议年份', allYears: '全部年份', empty: '没有符合条件的顶会', emptyHelp: '调整方向、年份或关键词；也可以切换到手动创建。',
+  stale: '暂时无法更新，正在使用已保存的真实快照。', fetchedAt: '快照抓取时间', checkedAt: '目录检查时间', source: '查看 CCF-DDL 来源', official: '会议官网', select: '选择会议后自动预填，并预览将带入的截止节点。', preview: '将带入的截止节点', unverified: '时间来自 CCF-DDL，尚未核实官网；23:59:59 和 AoE 可能为上游约定默认值。TBD 保留待定。',
+  rank: 'CCF A', round: '轮次', mainRound: '主轮次', closed: '投稿已截止', deadlineUnknown: '投稿截止待定', currentTimezone: '当前时区', original: '来源原文', cannotImport: '来源信息不足，不能自动带入节点',
+  create: '创建投稿并带入节点', created: '投稿及会议节点已创建', existing: '该会议已建档，保留现有内容并打开已有投稿', bound: '名称、年份和轮次来自所选会议；如需自定义，请切换到手动创建。', provenance: '会议数据来源', version: '来源版本', snapshot: '创建时的来源快照已保留；后续目录更新不会自动覆盖手动修改。',
+};
+
+export const reminderText = {
+  title: '提醒', add: '添加提醒', edit: '编辑提醒', retry: '重新安排', cancelReminder: '取消提醒', cancel: '取消', save: '保存提醒', refresh: '刷新', loading: '正在加载提醒…',
+  mode: '提醒方式', relative: '跟随目标期限', absolute: '指定时刻', timezone: '提醒时区', at: '提醒时刻', offset: '提前分钟数', dateTime: '日期型期限的提醒基准时刻',
+  policy: '提醒由服务端保存和调度。通知偏好与静音时段可能延后派发。', relativeHelp: '尚未触发的相对提醒会跟随期限调整；日期型期限必须明确时刻和时区。', absoluteHelp: '指定时刻不会随目标期限变化。夏令时重复或缺失时刻请改用 UTC 时区填写。',
+  invalidTime: '提醒时间或时区无效，请检查夏令时与时区填写。', failed: '投递失败，请重新安排', states: { pending: '待触发', sent: '已发送', canceled: '已取消' },
+  unread: '未读', empty: '暂无通知', read: '标记已读', snooze: '10 分钟后提醒', snoozedUntil: '已安排稍后提醒：', more: '加载更多', centerHelp: '服务端生成的通知会保留在这里。关闭浏览器后仍可在下次登录查看。',
+} as const;

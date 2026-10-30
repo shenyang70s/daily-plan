@@ -1,0 +1,33 @@
+import 'reflect-metadata';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
+import BetterSqlite3 from 'better-sqlite3';
+import { createDatabase } from '@research/persistence';
+import { IdentityService } from '../../dist/modules/identity/identity.service.js';
+import { TasksService } from '../../dist/modules/tasks/tasks.service.js';
+import { RemindersService } from '../../dist/modules/reminders/reminders.service.js';
+import { ReminderDelivery } from '../../dist/background/delivery.js';
+const migrationsPath=new URL('../../../../infra/migrations/',import.meta.url).pathname;
+function fixture(t){const directory=mkdtempSync(join(tmpdir(),'research-reminders-'));let db=createDatabase(new BetterSqlite3(join(directory,'db.sqlite')),{migrationsPath});t.after(()=>{db.close();rmSync(directory,{recursive:true,force:true});});return {get db(){return db},reopen(){db.close();db=createDatabase(new BetterSqlite3(join(directory,'db.sqlite')),{migrationsPath});return db}};}
+async function setup(t){const f=fixture(t);let now=Date.parse('2026-11-01T02:00:00Z');const clock=()=>now,identity=new IdentityService(f.db,clock),user=await identity.createAccount('remind-owner','remind-test-passphrase'),ctx={userId:user.id,sessionId:'test',csrfToken:''};identity.updatePreferences(ctx,{quiet:false});const task=new TasksService(f.db).create(ctx,{title:'Reminder target',type:'other',priority:'normal',due:{kind:'instant',at:'2026-11-01T03:00:00Z',timezone:'UTC'},durationMinutes:null,projectId:null,note:'',externalUrl:null},randomUUID());return {f,ctx,task,identity,clock,setNow:v=>{now=Date.parse(v)},service:new RemindersService(f.db,clock),engine:new ReminderDelivery(f.db,clock)};}
+const relative=(s,extra={})=>({targetType:'task',targetId:s.task.id,mode:'relative',offsetMinutes:30,timezone:'UTC',...extra});
+test('durable relative reminder: due delivery, duplicate protection, read/snooze and ownership',async t=>{
+ const s=await setup(t),r=s.service.create(s.ctx,relative(s),randomUUID());assert.equal(r.scheduledFor,'2026-11-01T02:30:00.000Z');await s.engine.tick();assert.equal(s.service.notifications(s.ctx,{}).items.length,0);s.setNow('2026-11-01T02:30:00Z');await s.engine.tick();await s.engine.tick();let items=s.service.notifications(s.ctx,{}).items;assert.equal(items.length,1);assert.equal(items[0].href,`/tasks/${s.task.id}`);assert.equal(s.service.list(s.ctx,{targetType:'task',targetId:s.task.id}).items[0].status,'sent');
+ const n=items[0];s.service.read(s.ctx,n.id,randomUUID());assert.equal(s.service.notifications(s.ctx,{}).unreadCount,0);const key=randomUUID();s.service.snooze(s.ctx,n.id,{minutes:10},key);s.service.snooze(s.ctx,n.id,{minutes:10},key);s.setNow('2026-11-01T02:40:00Z');await s.engine.tick();items=s.service.notifications(s.ctx,{}).items;assert.equal(items.length,2);assert.equal(items[0].reminderId,r.id);assert.equal(items[1].readAt!==null,true);
+ const other={...s.ctx,userId:randomUUID()};assert.throws(()=>s.service.create(other,relative(s),randomUUID()),e=>e.status===404);assert.throws(()=>s.service.read(other,n.id,randomUUID()),e=>e.status===404);assert.equal(s.service.notifications(other,{}).items.length,0);
+});
+test('deadline changes recalculate; completed targets skip; date-only requires an explicit time',async t=>{
+ const s=await setup(t),r=s.service.create(s.ctx,relative(s),randomUUID());s.f.db.withTransaction(tx=>tx.run('UPDATE tasks SET due_at=?,version=version+1 WHERE id=?',Date.parse('2026-11-01T04:00Z'),s.task.id));s.setNow('2026-11-01T02:30:00Z');await s.engine.tick();assert.equal(s.service.notifications(s.ctx,{}).items.length,0);assert.equal(s.service.list(s.ctx,{targetType:'task',targetId:s.task.id}).items[0].scheduledFor,'2026-11-01T03:30:00.000Z');s.f.db.withTransaction(tx=>tx.run("UPDATE tasks SET status='done',version=version+1 WHERE id=?",s.task.id));s.setNow('2026-11-01T03:30:00Z');await s.engine.tick();assert.equal(s.service.notifications(s.ctx,{}).items.length,0);assert.equal(s.f.db.get('SELECT status FROM reminders WHERE id=?',r.id).status,'canceled');
+ s.f.db.withTransaction(tx=>tx.run("UPDATE tasks SET status='todo',due_at=NULL,due_date='2026-11-02',timezone=NULL,version=version+1 WHERE id=?",s.task.id));assert.throws(()=>s.service.create(s.ctx,relative(s),randomUUID()),e=>e.code==='REMINDER_TIME_REQUIRED');const date=s.service.create(s.ctx,relative(s,{offsetMinutes:0,dateTime:'09:15'}),randomUUID());assert.equal(date.scheduledFor,'2026-11-02T09:15:00.000Z');
+});
+test('quiet hours postpone and disabled notifications wait; expired leases recover after reopen',async t=>{
+ const s=await setup(t);s.identity.updatePreferences(s.ctx,{quiet:true,timezone:'Asia/Shanghai'});s.setNow('2026-11-01T15:00:00Z');s.service.create(s.ctx,{targetType:'task',targetId:s.task.id,mode:'absolute',at:'2026-11-01T15:01:00Z',timezone:'Asia/Shanghai'},randomUUID());s.setNow('2026-11-01T15:01:00Z');await s.engine.tick();assert.equal(s.service.notifications(s.ctx,{}).items.length,0);s.setNow('2026-11-02T00:00:00Z');s.identity.updatePreferences(s.ctx,{notify:false});await s.engine.tick();assert.equal(s.service.notifications(s.ctx,{}).items.length,0);s.identity.updatePreferences(s.ctx,{notify:true});s.setNow('2026-11-02T00:01:01Z');const jobs=s.engine.claimDue();assert.equal(jobs.length,1);const db=s.f.reopen(),engine=new ReminderDelivery(db,s.clock),service=new RemindersService(db,s.clock);s.setNow('2026-11-02T00:03:00Z');await engine.tick();assert.equal(service.notifications(s.ctx,{}).items.length,1);assert.equal(db.get('SELECT attempts FROM outbox_events').attempts,2);
+});
+test('delivery failures retry with a limit and stay queryable; obsolete claimed jobs cannot send',async t=>{
+ const s=await setup(t);s.service.create(s.ctx,relative(s),randomUUID());s.setNow('2026-11-01T02:30:00Z');const job=s.engine.claimDue()[0];assert.ok(job);s.f.db.withTransaction(tx=>tx.run('UPDATE tasks SET due_at=?,version=version+1 WHERE id=?',Date.parse('2026-11-02T03:00Z'),s.task.id));await s.engine.deliver(job);assert.equal(s.service.notifications(s.ctx,{}).items.length,0);
+ s.f.db.withTransaction(tx=>tx.run("CREATE TRIGGER reject_notification BEFORE INSERT ON notifications BEGIN SELECT RAISE(ABORT,'test failure'); END"));for(let i=0;i<5;i++){s.setNow(`2026-11-${String(2+i).padStart(2,'0')}T03:00:00Z`);await s.engine.tick();}const state=s.service.list(s.ctx,{targetType:'task',targetId:s.task.id}).items[0];assert.equal(state.deliveryStatus,'failed');assert.equal(state.lastErrorCode,'DELIVERY_FAILED');assert.equal(s.service.notifications(s.ctx,{}).items.length,0);
+});

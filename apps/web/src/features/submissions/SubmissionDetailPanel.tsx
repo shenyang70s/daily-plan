@@ -5,7 +5,7 @@ import { nextMilestone } from '@research/domain';
 import { apiRequest, ApiError } from '../../lib/api-client';
 import { resourceKey } from '../../app/query-client';
 import { Link, navigate } from '../../app/router';
-import { submissionText as t } from '../../locales/zh-CN';
+import { submissionText as t, conferenceText } from '../../locales/zh-CN';
 import { EmptyState } from '../../components/EmptyState';
 import { Dialog } from '../../components/Dialog';
 import { useToast } from '../../components/Toast';
@@ -29,6 +29,7 @@ export function SubmissionDetailPanel({ id, userId, timezone }: { id: string; us
     {submission.archivedAt && <p className="submission-archived-note">{t.archivedNote}</p>}
     {detail.isError && <p className="error" role="alert">{detail.error.message}<button type="button" onClick={() => void refresh()}>{t.retry}</button></p>}
     {archive.isError && !archiveOpen && <p className="error" role="alert">{archive.error.message}<button type="button" onClick={() => void refresh()}>{t.refresh}</button></p>}
+    {submission.conferenceSource && <div className="conference-provenance"><strong>{conferenceText.provenance}</strong><a href={submission.conferenceSource.fileUrl} target="_blank" rel="noreferrer">{conferenceText.source} ↗</a><p>{conferenceText.fetchedAt}：{submission.conferenceSource.fetchedAt}</p><p className="help">{conferenceText.snapshot}</p></div>}
     <div className="submission-detail-columns"><div className="submission-metadata"><SubmissionEditor key={`${id}:${metaRevision}`} userId={userId} initial={submission} onSaved={() => setMetaRevision(value => value + 1)} onRefresh={() => void refresh()} /></div><aside className="submission-next"><h2>{t.nextMilestone}</h2>{current ? <><h3>{t.kinds[current.kind]}</h3><DeadlineView milestone={current} timezone={timezone} now={now} /></> : <p className="help">{t.nextUnknown}</p>}</aside></div>
     <div className="milestones-heading"><h2>{t.milestones}</h2>{!submission.archivedAt && <button type="button" className="primary" onClick={() => setEditing('new')}>{t.addMilestone}</button>}</div>
     <MilestoneList milestones={submission.milestones} userId={userId} timezone={timezone} now={now} archived={!!submission.archivedAt} onEdit={setEditing} onRefresh={() => void refresh()} />

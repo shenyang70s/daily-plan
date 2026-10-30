@@ -72,3 +72,40 @@
   .milestone-preview button { height: auto; min-height: 34px; padding: 8px; }
   .milestone-source { grid-template-columns: 80px minmax(0, 1fr); gap: 10px; }
 }
+.conference-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.conference-tabs button { font-size: 12px; }
+.conference-tabs button[aria-pressed=true], .conference-focus button[aria-pressed=true] { color: var(--primary); background: var(--soft); border-color: #cfe1fa; }
+.conference-policy { font-size: 13px; font-weight: 550; margin: 0 0 8px; }
+.conference-stale { font-size: 12px; line-height: 1.8; color: #936225; padding: 12px; border-radius: 6px; background: #fff6e8; }
+.conference-focus { display: flex; flex-wrap: wrap; gap: 6px; margin: 20px 0 12px; }
+.conference-focus button { font-size: 11px; padding: 0 10px; height: 30px; }
+.conference-search { display: flex; gap: 8px; margin-bottom: 12px; }
+.conference-search label { flex: 1; min-width: 0; }
+.conference-search input, .conference-search select { width: 100%; min-width: 0; height: 36px; border: 1px solid var(--border); border-radius: 6px; padding: 0 10px; background: #fff; font: inherit; font-size: 12px; color: var(--text); }
+.conference-search select { width: 108px; flex-shrink: 0; }
+.conference-options { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow: auto; padding: 4px; margin: 0 -4px; }
+.conference-option { flex-shrink: 0; display: flex; flex-direction: column; gap: 7px; width: 100%; height: auto; padding: 14px; color: var(--text); text-align: left; }
+.conference-option[aria-pressed=true] { border-color: var(--primary); background: #f6faff; }
+.conference-option > span { font-size: 10px; line-height: 1.7; }
+.conference-option .conference-option-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; font-size: 13px; }
+.conference-option-heading > span { color: var(--primary); font-size: 10px; }
+.conference-option-description { color: var(--secondary); }
+.conference-closed { color: var(--muted); }
+.conference-deadline { color: var(--primary); }
+.conference-snapshot { color: var(--muted); font-size: 10px; line-height: 1.8; overflow-wrap: anywhere; margin: 16px 0 24px; }
+.conference-preview { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 24px; }
+.conference-preview h3 { font-size: 16px; margin: 0 0 16px; overflow-wrap: anywhere; }
+.conference-preview h4 { font-size: 12px; margin: 20px 0 12px; }
+.conference-source-links { display: flex; flex-wrap: wrap; gap: 16px; font-size: 11px; }
+.conference-preview ul { list-style: none; margin: 0; padding: 0; }
+.conference-preview li { padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.conference-preview li strong, .conference-preview li span, .conference-preview li small { display: block; overflow-wrap: anywhere; }
+.conference-preview li strong { font-weight: 500; margin-bottom: 8px; }
+.conference-preview li span { font-size: 11px; color: var(--text); line-height: 1.8; }
+.conference-preview li small { color: var(--secondary); margin-top: 6px; font-size: 10px; }
+.conference-preview .submission-editor { margin-top: 24px; }
+.conference-provenance { padding: 16px 20px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 8px; background: var(--subtle); }
+.conference-provenance strong { font-size: 12px; font-weight: 500; margin-right: 20px; }
+.conference-provenance a { font-size: 11px; }
+.conference-provenance p { font-size: 11px; line-height: 1.8; overflow-wrap: anywhere; }
+@media (max-width: 700px) { .conference-option { padding: 12px; } .conference-tabs button { padding-inline: 10px; } .conference-focus { gap: 4px; } }

@@ -1,3 +1,4 @@
+import { ReminderPanel as ReminderEditor } from '../notifications/ReminderPanel';
 import { useState } from 'react';
 import { calendarText as t } from '../../locales/zh-CN';
 import { CalendarForm } from './CalendarForm';
@@ -13,6 +14,7 @@ export function EventDetailPanel({ initial, userId, timezone, onSaved, onRefresh
   return <>
     <CalendarForm userId={userId} timezone={timezone} slot="" initial={snapshot} onSaved={onSaved} onRefresh={onRefresh} />
     {snapshot.kind === 'block' ? <Link className="calendar-task-link" href={`/tasks/${snapshot.value.taskId}`}>{t.taskLink} →</Link> : snapshot.value.preparationTasks.length > 0 && <div className="calendar-preparation"><h3>{t.preparationTasks}</h3>{snapshot.value.preparationTasks.map(task => <Link key={task.id} href={`/tasks/${task.id}`}>{task.title} →</Link>)}</div>}
+    {snapshot.kind === 'event' && <ReminderEditor userId={userId} timezone={timezone} target={{ targetType: 'event', targetId: snapshot.value.id }} due={{ kind: 'instant', at: snapshot.value.startAt, timezone: snapshot.value.timezone }} />}
     <div className="calendar-remove">
       {confirm ? <><p>{snapshot.kind === 'event' ? t.removeHelp : t.cancelHelp}</p><div className="dialog-actions"><button type="button" disabled={remove.isPending} onClick={() => setConfirm(false)}>{t.cancel}</button><button type="button" className="danger" disabled={remove.isPending} onClick={() => remove.mutate({ expectedVersion: snapshot.value.version })}>{t.confirm}</button></div></> : <button type="button" className="danger" onClick={() => setConfirm(true)}>{snapshot.kind === 'event' ? t.removeEvent : t.cancelBlock}</button>}
       {remove.isError && <p className="error" role="alert">{remove.error.message} {remove.error instanceof ApiError && remove.error.status === 409 && <button type="button" onClick={onRefresh}>{t.refresh}</button>}</p>}
