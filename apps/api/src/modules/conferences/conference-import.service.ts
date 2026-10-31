@@ -1,6 +1,7 @@
+import { ConferenceUpdateService, nodeSource } from './conference-update.service.js';
 import { conferenceImport } from '@research/persistence';
 import type { Database } from '@research/persistence';
-import type { CreateConferenceSubmissionInput, ConferenceSubmissionResult } from '@research/contracts';
+import type { CreateConferenceSubmissionInput, ConferenceSubmissionResult, ConferenceUpdateChoice } from '@research/contracts';
 import type { SessionContext } from '../identity/identity.service.js';
 import { ConferenceSource, parseConferenceSnapshot } from './conference-source.js';
 import { SubmissionsService } from '../submissions/submissions.service.js';
@@ -23,12 +24,17 @@ export class ConferenceImportService {
       const submission = this.submissions.createInTransaction(tx, ctx, input.submission);
       let expectedSubmissionVersion = submission.version;
       for (const milestone of candidate.milestones) {
-        this.submissions.createMilestoneInTransaction(tx, ctx, submission.id, { kind: milestone.kind, due: milestone.due, sourceTimezone: milestone.sourceTimezone, sourceUrl: candidate.fileUrl, officialUrl: candidate.officialUrl, verifiedAt: null, expectedSubmissionVersion });
+        const createdNode = this.submissions.createMilestoneInTransaction(tx, ctx, submission.id, { kind: milestone.kind, due: milestone.due, sourceTimezone: milestone.sourceTimezone, sourceUrl: candidate.fileUrl, officialUrl: candidate.officialUrl, verifiedAt: null, expectedSubmissionVersion });
+        tx.run('INSERT INTO conference_milestone_bindings(user_id,submission_id,kind,milestone_id,baseline_json) VALUES(?,?,?,?,?)', ctx.userId, submission.id, milestone.kind, createdNode.id, JSON.stringify(nodeSource(candidate, milestone)));
         expectedSubmissionVersion++;
       }
       const rawYaml = snapshot.files.find(file => file.path === candidate.filePath)!.yaml;
       tx.run('INSERT INTO conference_imports(user_id,candidate_id,submission_id,commit_sha,file_path,fetched_at,snapshot_json,created_at) VALUES(?,?,?,?,?,?,?,?)', ctx.userId, candidate.id, submission.id, candidate.commitSha, candidate.filePath, Date.parse(candidate.fetchedAt), JSON.stringify({ candidate, rawYaml }), Date.now());
+      tx.run('INSERT INTO conference_import_snapshots(user_id,submission_id,commit_sha,snapshot_json,first_seen_at) VALUES(?,?,?,?,?)', ctx.userId, submission.id, candidate.commitSha, JSON.stringify({ candidate, rawYaml }), Date.now());
       return { submission: this.submissions.getInTransaction(tx, ctx, submission.id), created: true };
     });
   }
+  preview(ctx: SessionContext, input: { submissionId: string; expectedVersion: number }, key: string) { return new ConferenceUpdateService(this.db, this.source, this.submissions).preview(ctx, input, key); }
+  confirmUpdate(ctx: SessionContext, id: string, input: ConferenceUpdateChoice, key: string) { return new ConferenceUpdateService(this.db, this.source, this.submissions).confirm(ctx, id, input, key); }
+
 }

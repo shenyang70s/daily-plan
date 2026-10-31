@@ -1,3 +1,4 @@
+import { SourceUpdatePanel } from './SourceUpdatePanel';
 import { AiEntry } from '../ai/AiEntry';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -30,7 +31,7 @@ export function SubmissionDetailPanel({ id, userId, timezone, embedded = false }
     {submission.archivedAt && <p className="submission-archived-note">{t.archivedNote}</p>}
     {detail.isError && <p className="error" role="alert">{detail.error.message}<button type="button" onClick={() => void refresh()}>{t.retry}</button></p>}
     {archive.isError && !archiveOpen && <p className="error" role="alert">{archive.error.message}<button type="button" onClick={() => void refresh()}>{t.refresh}</button></p>}
-    {submission.conferenceSource && <div className="conference-provenance"><strong>{conferenceText.provenance}</strong><a href={submission.conferenceSource.fileUrl} target="_blank" rel="noreferrer">{conferenceText.source} ↗</a><p>{conferenceText.fetchedAt}：{submission.conferenceSource.fetchedAt}</p><p className="help">{conferenceText.snapshot}</p></div>}
+    {submission.conferenceSource && <div className="conference-provenance"><strong>{conferenceText.provenance}</strong>{!submission.archivedAt && <SourceUpdatePanel userId={userId} submissionId={id} version={submission.version} timezone={timezone} onApplied={() => { setMetaRevision(value => value + 1); setRevision(value => value + 1); }} />}<a href={submission.conferenceSource.fileUrl} target="_blank" rel="noreferrer">{conferenceText.source} ↗</a><p>{conferenceText.fetchedAt}：{submission.conferenceSource.fetchedAt}</p><p className="help">{conferenceText.snapshot}</p></div>}
     <AiEntry scope={{ type: 'submission', id }} placeholder="根据此投稿的真实截止节点，拆解并安排准备任务……" />
     <div className="submission-detail-columns"><div className="submission-metadata"><SubmissionEditor key={`${id}:${metaRevision}`} userId={userId} initial={submission} onSaved={() => setMetaRevision(value => value + 1)} onRefresh={() => void refresh()} /></div><aside className="submission-next"><h2>{t.nextMilestone}</h2>{current ? <><h3>{t.kinds[current.kind]}</h3><DeadlineView milestone={current} timezone={timezone} now={now} /></> : <p className="help">{t.nextUnknown}</p>}</aside></div>
     <div className="milestones-heading"><h2>{t.milestones}</h2>{!submission.archivedAt && <button type="button" className="primary" onClick={() => setEditing('new')}>{t.addMilestone}</button>}</div>

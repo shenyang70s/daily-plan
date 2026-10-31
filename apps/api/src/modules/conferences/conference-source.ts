@@ -81,18 +81,18 @@ export class ConferenceSource {
     if (stored) return JSON.parse(String(stored.snapshot_json)) as SourceSnapshot;
     return sha === this.bundled.commitSha ? this.bundled : null;
   }
-  async catalog(): Promise<ConferenceCatalog> {
-    if (this.current && this.now() - this.attemptedAt < (this.current.stale ? 300000 : 21600000)) return this.current;
+  async catalog(force = false): Promise<ConferenceCatalog> {
+    if (!force && this.current && this.now() - this.attemptedAt < (this.current.stale ? 300000 : 21600000)) return this.current;
     if (this.pending) return this.pending;
-    this.pending = this.refresh().finally(() => { this.pending = null; }); return this.pending;
+    this.pending = this.refresh(force).finally(() => { this.pending = null; }); return this.pending;
   }
-  private async refresh(): Promise<ConferenceCatalog> {
+  private async refresh(force = false): Promise<ConferenceCatalog> {
     this.attemptedAt = this.now();
     const prior = latestConferenceSnapshot(this.db);
     let snapshot = prior ? JSON.parse(String(prior.snapshot_json)) as SourceSnapshot : this.bundled;
     const deadline = AbortSignal.timeout(12000);
     try {
-      if (prior && this.now() - Number(prior.checked_at) < 21600000) return this.current = { items: parseConferenceSnapshot(snapshot), commitSha: snapshot.commitSha, fetchedAt: snapshot.fetchedAt, checkedAt: new Date(Number(prior.checked_at)).toISOString(), stale: false };
+      if (!force && prior && this.now() - Number(prior.checked_at) < 21600000) return this.current = { items: parseConferenceSnapshot(snapshot), commitSha: snapshot.commitSha, fetchedAt: snapshot.fetchedAt, checkedAt: new Date(Number(prior.checked_at)).toISOString(), stale: false };
       const ref = object(JSON.parse(await this.read('https://api.github.com/repos/ccfddl/ccf-deadlines/git/ref/heads/main', 65536, deadline)));
       const commit = object(ref.object);
       if (typeof commit.sha !== 'string' || !/^[a-f0-9]{40}$/.test(commit.sha)) throw new Error('Invalid commit');

@@ -192,3 +192,19 @@ export type AiInterpretResult = AiPlan | { kind: 'query'; resource: 'tasks' | 'c
   | { kind: 'proposal'; draft: CreateTaskInput; assumptions: string[]; schedule?: CalendarRange; executable: false };
 export interface AiRunDto { id: string; execution?: AiExecutionDto | null; superseded?: boolean; status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'; phase: 'queued' | 'interpreting' | 'querying' | 'completed' | 'failed' | 'canceled'; result: AiInterpretResult | null; error: { code: string; message: string } | null }
 export interface AiConfigDto { configured: boolean; enabled: boolean; provider: 'deepseek'; model: string }
+
+export const ConferenceUpdatePreviewSchema = z.object({ submissionId: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict();
+export const ConferenceUpdateConfirmSchema = z.object({ confirm: z.literal(true), choices: z.array(z.object({ kind: MilestoneKindSchema, action: z.enum(['keep_local','use_source']) }).strict()).max(6) }).strict();
+export type ConferenceUpdateChoice = z.infer<typeof ConferenceUpdateConfirmSchema>;
+export interface ConferenceNodeSource { kind: MilestoneKind; due: TaskDue; sourceTimezone: string | null; sourceUrl: string | null; officialUrl: string | null; verifiedAt: string | null; rawDeadline?: string }
+export interface ConferenceUpdateItem {
+  kind: MilestoneKind; status: 'unchanged' | 'changed' | 'added' | 'conflict' | 'local_modified' | 'local_deleted' | 'upstream_removed' | 'ambiguous';
+  baseline: ConferenceNodeSource | null; local: MilestoneDto | null; localMatches: MilestoneDto[];
+  remote: ConferenceNodeSource | null; inferred: boolean; pendingRelativeReminders: number;
+}
+export interface ConferenceUpdatePreview {
+  id: string; submissionId: string; submissionName: string; expectedVersion: number;
+  previousSha: string; commitSha: string; fetchedAt: string; checkedAt: string; expiresAt: string;
+  sourceUrl: string | null; stale: boolean; issues: string[]; items: ConferenceUpdateItem[];
+}
+export interface ConferenceUpdateResult { submission: SubmissionDto; applied: number; proposalId: string }

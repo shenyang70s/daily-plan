@@ -17,7 +17,7 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与 AI 查询',contextNext:'接下来',contextUpcoming:'提案确认与来源更新比较',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与 AI 方案',contextNext:'接下来',contextUpcoming:'计划管理与备份恢复',
  notificationSettingsNote:'关闭通知会暂停派发，重新开启后处理待发送提醒。静音模式按用户时区在 22:00–08:00 延后派发；已有通知始终可查看。',quiet:'静音模式',aiSettingsNote:'AI 使用 DeepSeek 解析输入；关闭后停止接受新的 AI 请求，普通任务功能不受影响。',proactive:'主动建议',
 };
 
@@ -75,7 +75,7 @@ export const conferenceText = {
   search: '搜索会议', searchPlaceholder: '搜索 OSDI、ICLR、NeurIPS…', year: '会议年份', allYears: '全部年份', empty: '没有符合条件的顶会', emptyHelp: '调整方向、年份或关键词；也可以切换到手动创建。',
   stale: '暂时无法更新，正在使用已保存的真实快照。', fetchedAt: '快照抓取时间', checkedAt: '目录检查时间', source: '查看 CCF-DDL 来源', official: '会议官网', select: '选择会议后自动预填，并预览将带入的截止节点。', preview: '将带入的截止节点', unverified: '时间来自 CCF-DDL，尚未核实官网；23:59:59 和 AoE 可能为上游约定默认值。TBD 保留待定。',
   rank: 'CCF A', round: '轮次', mainRound: '主轮次', closed: '投稿已截止', deadlineUnknown: '投稿截止待定', currentTimezone: '当前时区', original: '来源原文', cannotImport: '来源信息不足，不能自动带入节点',
-  create: '创建投稿并带入节点', created: '投稿及会议节点已创建', existing: '该会议已建档，保留现有内容并打开已有投稿', bound: '名称、年份和轮次来自所选会议；如需自定义，请切换到手动创建。', provenance: '会议数据来源', version: '来源版本', snapshot: '创建时的来源快照已保留；后续目录更新不会自动覆盖手动修改。',
+  create: '创建投稿并带入节点', created: '投稿及会议节点已创建', existing: '该会议已建档，保留现有内容并打开已有投稿', bound: '名称、年份和轮次来自所选会议；如需自定义，请切换到手动创建。', provenance: '会议数据来源', version: '来源版本', snapshot: '原始及已接受版本的来源快照均保留；节点可保留本地修订，请以各节点的来源和核实状态为准。目录更新不会自动覆盖。',
 };
 
 export const reminderText = {

@@ -93,7 +93,7 @@ tests/e2e/                # 登录后的关键用户闭环
 - Task 6：日/周/月日历、日期/精确期限读模型、固定事件及关联准备任务、已有任务工作块、新任务与工作块原子创建、编辑/取消和详情深链已实现。写入事务内检查冲突，签名确认凭据绑定候选时间、当前用户和冲突版本；旧确认拒绝且无部分写入。工作块与期限分别保存，Task reschedule 已支持 deadline/blocks/both。Temporal 0.5.1 已锁定，日历按需加载。共享包/API/Web 构建、地区时区 2 项、原领域 5 项、Web 7 项与日历/任务/认证/页面路由 4 项定向检查通过。真实浏览器验证创建、准备任务原子性、相接不冲突、变化后的冲突重新确认、日周月、深链刷新、工作块编辑/取消不改期限、切换时区、夏令时拒绝及明确偏移、跨用户隔离和四种尺寸；截图检查后修复已占时段新增入口与桌面周日列裁切。
 - Task 7：投稿与独立节点 CRUD、阶段更新、归档/恢复、来源与核实信息、待定/纯日期/精确时刻、服务器标准化的节点修改预览和确认已实现。归档保留节点，阶段更新不改期限，节点写入递增父记录版本；时区使用 Temporal，保留 AoE/PT 来源与秒精度。共享领域规则负责下一节点、倒计时与统一格式化，投稿列表/详情和日历共用，通知待 Task 8 使用。日历纳入投稿节点，点击跳转投稿详情。共享包/API/Web 构建通过，投稿 HTTP 与日历/认证回归、节点领域检查共 5 项通过，Web 7 项检查通过。隔离 SQLite 与真实浏览器验证完整投稿/节点流程、未确认不写入、取消与确认、版本冲突保留输入、阶段与期限分离、上海/洛杉矶同一瞬间、日历跳转、AoE/PT/夏令时、已截止、四种尺寸、归档恢复、节点删除、筛选与账户隔离；截图已检查。Staging 待验收。
 - Task 8：应用内提醒闭环已实现：持久化 Outbox、进程内调度、租约恢复、去重、失败重试、静音延后、目标状态复核与改期重算；三个目标入口、通知已读/稍后提醒、SSE 和 GET 回补已接入。Web Push 的本地实现与验证已完成，真实供应商到设备投递和 Staging 验收待完成。
-- Task 9：DeepSeek 意图解析、白名单只读查询、追问、非执行任务草案、进度与取消已本地实现；真实 API 单次冒烟通过。Task 10 的统一方案确认、批量原子执行、审计与多轮修改已按 AI native 后续设计实现；Task 12–14 后续管理能力仍待实现。Task 11 的顶会新建选择已部分实现，已有投稿更新比较待完成。
+- Task 9：DeepSeek 意图解析、白名单只读查询、追问、非执行任务草案、进度与取消已本地实现；真实 API 单次冒烟通过。Task 10 的统一方案确认、批量原子执行、审计与多轮修改已按 AI native 后续设计实现；Task 12–14 后续管理能力仍待实现。Task 11 的顶会新建选择与已有投稿来源更新比较、确认和快照审计已实现。
 
 ## 阶段与验收里程碑
 
@@ -236,16 +236,16 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 11：CCF-Deadlines 快照与手动导入
 
-**部分实现（用户新增需求）：** 新建投稿默认从固定 ccfddl/ccf-deadlines 仓库按 SHA 读取相关 A 类会议，支持方向/年份/关键词筛选、节点预览、来源快照、原子创建和重复选择保护。六小时按需缓存及真实备用快照已接入，不接受任意抓取 URL。详见 [顶会选择实施记录](2026-10-30-ccf-conference-picker.md)。已有投稿的上游变更比较、提案确认和提醒重算仍待实现，下列完整任务保持未完成。
+**已实现并完成本地验证（用户新增需求）：** 新建投稿默认从固定 ccfddl/ccf-deadlines 仓库按 SHA 读取相关 A 类会议，支持方向/年份/关键词筛选、节点预览、来源快照、原子创建和重复选择保护。六小时按需缓存及真实备用快照已接入，不接受任意抓取 URL。详见 [顶会选择实施记录](2026-10-30-ccf-conference-picker.md)。已有投稿的三方变更比较、逐项确认、提醒重算和快照历史已按 [后续计划](2026-10-31-conference-source-updates.md) 完成。实际新增 `conference-update.service.ts`、`SourceUpdatePanel.tsx` 和迁移010/011；下列为原计划参考。
 
 **Files:** 创建 `apps/api/src/modules/conferences/{conference-source,conference-import.service,conferences.controller}.ts`、`packages/persistence/src/conference-source.repository.ts`、`packages/contracts/src/conference.ts`、`infra/migrations/004_conference_sources.sql`、`apps/web/src/features/submissions/ConferenceImportPreview.tsx`、`apps/api/test/fixtures/conferences/{iclr,cvpr,unknown}.yml`；测试 `apps/api/test/integration/conference-import.spec.ts`。
 
 **Interfaces:** `ConferenceSource.loadSnapshot(input:{yaml:string;fileUrl:string;officialUrl:string;commitSha:string;fetchedAt:string}):ConferenceSnapshot`。补充 `POST /conferences/import-preview` 和 `POST /conferences/import-proposals/{id}/confirm`；前者创建可持久化比较提案，后者复用 Task 10 的版本、权限、幂等和事务基础设施。远端记录身份采用 `{conferenceId,year,round,nodeType}`。
 
-- [ ] 用锁定版本的 YAML fixture 验证四类节点映射、TBD 不生成时刻/提醒、AoE/PT 保留语义、缺少 timezone 拒绝确认、重复导入不重复生成、手动修订冲突需显式决定、上游删除不自动删除本地节点；先运行失败用例。
-- [ ] 实现受限 YAML 解析、字段校验、来源快照、变更比较与确认导入。MVP 输入可信本地快照/手动提供的数据，不接受任意 URL 服务端抓取，不以 prototype 中未锁定 SHA 的日期冒充可追溯正式源。
-- [ ] 保留原始日期、秒、来源 timezone、抓取时间、commit SHA、文件与官网链接；上游约定默认值与官方明确值在预览中区分，无法判断的标为待核实。确认更新后才重算提醒，不覆盖未选择接受的用户字段。
-- [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/conference-import.spec.ts`；验收导入后来源可查、取消无业务更改，网络中断不影响已有投稿记录。
+- [x] 用锁定版本的 YAML fixture 验证四类节点映射、TBD 不生成时刻/提醒、AoE/PT 保留语义、缺少 timezone 拒绝确认、重复导入不重复生成、手动修订冲突需显式决定、上游删除不自动删除本地节点；先运行失败用例。
+- [x] 实现受限 YAML 解析、字段校验、来源快照、变更比较与确认导入。MVP 输入可信本地快照/手动提供的数据，不接受任意 URL 服务端抓取，不以 prototype 中未锁定 SHA 的日期冒充可追溯正式源。
+- [x] 保留原始日期、秒、来源 timezone、抓取时间、commit SHA、文件与官网链接；上游约定默认值与官方明确值在预览中区分，无法判断的标为待核实。确认更新后才重算提醒，不覆盖未选择接受的用户字段。
+- [x] 运行实际CCF/投稿/提醒定向测试及隔离浏览器；验收导入后来源可查、取消无业务更改，网络中断不影响已有投稿记录。
 - [ ] 提交：`feat: import conference deadline snapshots with confirmation`。
 
 ## Task 12：基础计划建议与轻量管理

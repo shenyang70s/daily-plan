@@ -98,13 +98,14 @@ export class SubmissionsService {
     this.bumpParent(tx, ctx, id); return this.milestoneDto(this.milestone(tx, ctx, milestoneId));
   }
   updateMilestone(ctx: SessionContext, id: string, input: UpdateMilestoneInput, key: string) {
-    return writeResource(this.db, ctx.userId, `milestones:${id}:update`, key, input, tx => {
-      const row = this.milestone(tx, ctx, id, true); this.version(row, input.expectedVersion);
-      const values = this.milestoneValues(input, row);
-      if (!input.confirmDeadlineChange) throw new AppError(409, 'DEADLINE_CONFIRMATION_REQUIRED', '请先核对节点与来源的前后变化，再确认修改', { before: this.milestoneDto(row), after: this.milestoneDto({ ...row, ...values }) });
-      updateSubmissionRecord(tx, 'milestone', ctx.userId, id, { ...values, updated_at: this.now() });
-      this.bumpParent(tx, ctx, String(row.submission_id)); return this.milestoneDto(this.milestone(tx, ctx, id));
-    });
+    return writeResource(this.db, ctx.userId, `milestones:${id}:update`, key, input, tx => this.updateMilestoneInTransaction(tx, ctx, id, input));
+  }
+  updateMilestoneInTransaction(tx: Transaction, ctx: SessionContext, id: string, input: UpdateMilestoneInput): MilestoneDto {
+    const row = this.milestone(tx, ctx, id, true); this.version(row, input.expectedVersion);
+    const values = this.milestoneValues(input, row);
+    if (!input.confirmDeadlineChange) throw new AppError(409, 'DEADLINE_CONFIRMATION_REQUIRED', '请先核对节点与来源的前后变化，再确认修改', { before: this.milestoneDto(row), after: this.milestoneDto({ ...row, ...values }) });
+    updateSubmissionRecord(tx, 'milestone', ctx.userId, id, { ...values, updated_at: this.now() });
+    this.bumpParent(tx, ctx, String(row.submission_id)); return this.milestoneDto(this.milestone(tx, ctx, id));
   }
   deleteMilestone(ctx: SessionContext, id: string, input: { expectedVersion: number; confirm: true }, key: string) {
     return writeResource(this.db, ctx.userId, `milestones:${id}:delete`, key, input, tx => {
