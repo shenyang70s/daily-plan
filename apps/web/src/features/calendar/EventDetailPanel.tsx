@@ -1,3 +1,4 @@
+import { ResourceOverview } from '../../components/ResourceOverview';
 import { AiEntry } from '../ai/AiEntry';
 import { ReminderPanel as ReminderEditor } from '../notifications/ReminderPanel';
 import { useState } from 'react';
@@ -14,7 +15,7 @@ export function EventDetailPanel({ initial, userId, timezone, onSaved, onRefresh
   const remove = useResourceWrite<{ expectedVersion: number }, unknown>(userId, (body, key) => writeApi(snapshot.kind === 'event' ? `/calendar/events/${snapshot.value.id}` : `/schedule-blocks/${snapshot.value.id}`, 'DELETE', body, key), () => { toast(t.removed); onSaved(); });
   return <>
     <AiEntry scope={{ type: snapshot.kind, id: snapshot.value.id }} placeholder="调整这项日程，或为事件设置提醒……" />
-    <CalendarForm userId={userId} timezone={timezone} slot="" initial={snapshot} onSaved={onSaved} onRefresh={onRefresh} />
+    <ResourceOverview fields={[['标题', snapshot.value.title], ['开始', new Date(snapshot.value.startAt).toLocaleString('zh-CN', { timeZone: snapshot.value.timezone })], ['结束', new Date(snapshot.value.endAt).toLocaleString('zh-CN', { timeZone: snapshot.value.timezone })], ['时区', snapshot.value.timezone], ...(snapshot.kind === 'event' ? [['地点', snapshot.value.location || '未设置'], ['备注', snapshot.value.note || '暂无备注']] as [string, string][] : [])]} /><details className="precision-edit"><summary>精确调整日程字段</summary><CalendarForm userId={userId} timezone={timezone} slot="" initial={snapshot} onSaved={onSaved} onRefresh={onRefresh} /></details>
     {snapshot.kind === 'block' ? <Link className="calendar-task-link" href={`/tasks/${snapshot.value.taskId}`}>{t.taskLink} →</Link> : snapshot.value.preparationTasks.length > 0 && <div className="calendar-preparation"><h3>{t.preparationTasks}</h3>{snapshot.value.preparationTasks.map(task => <Link key={task.id} href={`/tasks/${task.id}`}>{task.title} →</Link>)}</div>}
     {snapshot.kind === 'event' && <ReminderEditor userId={userId} timezone={timezone} target={{ targetType: 'event', targetId: snapshot.value.id }} due={{ kind: 'instant', at: snapshot.value.startAt, timezone: snapshot.value.timezone }} />}
     <div className="calendar-remove">

@@ -41,7 +41,7 @@ export const tasksText = {
 
 export const calendarText = {
   title: '日历', day: '日', week: '周', month: '月', today: '今天', previous: '上一段日期', next: '下一段日期', chooseDate: '查看日期', timezone: '显示时区',
-  loading: '正在加载日历…', failed: '日历加载失败', retry: '重试', noItems: '当前日期范围没有安排', slotHelp: '点击具体时段记录任务或固定事件。截止日期与工作块分别保存。',
+  loading: '正在加载日历…', failed: '日历加载失败', retry: '重试', noItems: '当前日期范围没有安排', slotHelp: '点击时段并描述目标，让 AI 生成日程方案，预览确认后保存。',
   newSchedule: '安排工作', editEvent: '事件详情', editBlock: '工作块详情', mode: '安排类型', newTask: '新建任务并安排', existingTask: '安排已有任务', fixedEvent: '固定事件 / 会议',
   taskTitle: '任务标题', eventTitle: '事件名称', start: '开始时间', end: '结束时间', sourceTimezone: '安排时区', location: '地点', link: '会议链接', note: '备注', preparation: '准备任务标题（可选）', preparationHelp: '填写后会同时创建一项关联的会议准备任务。删除会议不会删除该任务。',
   due: '任务截止日期（可选）', dueHelp: '留空表示无截止日期。这里的工作时间不会自动成为截止时间。', chooseTask: '选择任务', tasksLoading: '正在加载可安排任务…', noTasks: '暂无可安排任务，请先记录任务或选择新建任务。',
@@ -58,7 +58,7 @@ export const submissionText = {
   stages: { planning: '计划中', preparing: '准备中', internal_review: '内部审阅', submitted: '已提交', under_review: '审稿中', rebuttal: '答辩中', decision: '等待决定', accepted: '已录用', rejected: '未录用', withdrawn: '已撤回' },
   kinds: { abstract: '摘要', full_paper: '全文', rebuttal: '答辩', notification: '结果通知', camera_ready: '最终稿', other: '其他节点' },
   search: '搜索投稿', searchPlaceholder: '搜索名称、轮次或下一步行动', allStages: '全部阶段', active: '正在跟进', archived: '已归档', archiveFilter: '归档状态', clearFilters: '清除筛选', loadMore: '加载更多', loading: '正在加载投稿…', retry: '重试', unavailable: '投稿加载失败',
-  empty: '还没有投稿记录', emptyHelp: '添加会议或期刊，分别维护摘要、全文和其他重要节点。', filteredEmpty: '没有符合条件的投稿', filteredEmptyHelp: '调整阶段或关键词，或清除筛选后再试。',
+  empty: '还没有投稿记录', emptyHelp: '描述投稿目标，让 AI 帮你建立准备计划；会议期限可从顶会来源核对。', filteredEmpty: '没有符合条件的投稿', filteredEmptyHelp: '调整阶段或关键词，或清除筛选后再试。',
   detail: '投稿详情', back: '返回投稿列表', save: '保存投稿', saving: '正在保存…', created: '投稿已创建', saved: '投稿已保存', create: '创建投稿', invalidInput: '请检查名称、年份、轮次和链接，链接仅支持 HTTP 或 HTTPS。', refresh: '刷新最新版本', notFound: '找不到这条投稿', notFoundHelp: '记录可能不存在，或当前账户没有访问权限。',
   archive: '归档投稿', archiveTitle: '确认归档投稿', archiveHelp: '归档会保留阶段、节点和来源，并从正在跟进的列表及日历隐藏。之后可以恢复。', restore: '恢复投稿', archivedDone: '投稿已归档', restored: '投稿已恢复', archivedNote: '这条投稿已归档，恢复后可继续编辑节点与来源。', cancel: '取消', confirm: '确认归档',
   milestones: '截止节点', addMilestone: '添加节点', createMilestone: '新建截止节点', editMilestone: '编辑截止节点', kind: '节点类型', deadlineKind: '时间类型', unknown: '待定', dateOnly: '仅日期', instant: '精确时刻', date: '截止日期', localDateTime: '来源本地时刻', sourceTimezone: '来源时区', timezoneHint: '例如 AoE、PT 或 Asia/Shanghai；待定节点不需要补日期。', offset: '夏令时偏移（可选）', offsetHint: '重复时刻可填写 -07:00 或 -08:00；不存在的时刻不能保存。',
@@ -72,7 +72,7 @@ export const submissionText = {
 export const conferenceText = {
   choose: '从 CCF-DDL 选择顶会', manual: '手动创建', loading: '正在读取 CCF-Deadlines 会议目录…', unavailable: '会议目录加载失败', retry: '重新加载目录',
   topOnly: '仅显示相关 CCF A 类会议', focusNote: '方向标签由本应用整理，表示研究相关性，不代表会议设有 SNN 专属赛道。', focuses: { systems: '系统', ai: 'AI', edge: '边缘智能', snn: 'SNN 相关' }, all: '全部相关顶会', focus: '会议方向',
-  search: '搜索会议', searchPlaceholder: '搜索 OSDI、ICLR、NeurIPS…', year: '会议年份', allYears: '全部年份', empty: '没有符合条件的顶会', emptyHelp: '调整方向、年份或关键词；也可以切换到手动创建。',
+  search: '搜索会议', searchPlaceholder: '搜索 OSDI、ICLR、NeurIPS…', year: '会议年份', allYears: '全部年份', empty: '没有符合条件的顶会', emptyHelp: '调整方向、年份或关键词；其他投稿目标可通过 AI 输入描述。',
   stale: '暂时无法更新，正在使用已保存的真实快照。', fetchedAt: '快照抓取时间', checkedAt: '目录检查时间', source: '查看 CCF-DDL 来源', official: '会议官网', select: '选择会议后自动预填，并预览将带入的截止节点。', preview: '将带入的截止节点', unverified: '时间来自 CCF-DDL，尚未核实官网；23:59:59 和 AoE 可能为上游约定默认值。TBD 保留待定。',
   rank: 'CCF A', round: '轮次', mainRound: '主轮次', closed: '投稿已截止', deadlineUnknown: '投稿截止待定', currentTimezone: '当前时区', original: '来源原文', cannotImport: '来源信息不足，不能自动带入节点',
   create: '创建投稿并带入节点', created: '投稿及会议节点已创建', existing: '该会议已建档，保留现有内容并打开已有投稿', bound: '名称、年份和轮次来自所选会议；如需自定义，请切换到手动创建。', provenance: '会议数据来源', version: '来源版本', snapshot: '原始及已接受版本的来源快照均保留；节点可保留本地修订，请以各节点的来源和核实状态为准。目录更新不会自动覆盖。',

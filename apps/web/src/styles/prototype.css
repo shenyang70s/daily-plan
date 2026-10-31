@@ -95,10 +95,15 @@
 .empty-state h2 { font-size: 14px; font-weight: 600; }
 .empty-state p { font-size: 12px; }
 .prototype-notice { background: #f5f8fd; color: #637b9c; font-size: 11px; padding: 12px; border-radius: 6px; line-height: 1.8; margin-top: 40px; }
-.task-board { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 15px; }
-.task-board-column { background: var(--subtle); border-radius: 8px; padding: 14px; min-height: 250px; }
-.task-board-column h2 { margin: 0 0 16px; font-size: 12px; }
-.task-board-column h2 small { font-size: 11px; color: var(--secondary); font-weight: 400; }
+.full-columns .shell-content:has(.task-board) { max-width: none; }
+.task-board { display: grid; grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(200px,1fr); gap: 15px; overflow-x: auto; padding-bottom: 12px; }
+.task-board-column { --board-accent: #677383; --board-tint: #f3f5f7; background: var(--board-tint); border-top: 2px solid var(--board-accent); border-radius: 8px; padding: 14px; min-height: 250px; }
+.task-board-column[data-status=todo] { --board-accent: #526f97; --board-tint: #f0f4f9; }
+.task-board-column[data-status=in_progress] { --board-accent: #926f3c; --board-tint: #faf5eb; }
+.task-board-column[data-status=done] { --board-accent: #507762; --board-tint: #f0f6f2; }
+.task-board-column[data-status=canceled] { --board-accent: #916871; --board-tint: #f8f1f3; }
+.task-board-column h2 { margin: 0 0 16px; font-size: 12px; color: var(--board-accent); }
+.task-board-column h2 small { font-size: 11px; color: inherit; font-weight: 400; }
 .task-board-card { display: block; padding: 14px; background: white; border: 1px solid var(--border); border-radius: 7px; margin-bottom: 10px; color: var(--text); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .task-board-card small { display: block; color: var(--secondary); font-size: 10px; margin-top: 8px; }
 .shell-context { display: block; padding: 38px 23px; background: #fcfdff; }
@@ -214,7 +219,6 @@
   .task-row-title { font-size: 12px; }
   .task-row-meta, .task-row .task-due { font-size: 9px; }
   .task-section-heading > span { max-width: 45%; font-size: 10px; text-align: right; }
-  .task-board { grid-template-columns: minmax(0,1fr); }
   .submission-card { padding: 18px; }
   .submission-card-next { grid-template-columns: minmax(0,1fr); }
 }

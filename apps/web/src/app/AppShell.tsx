@@ -82,7 +82,7 @@ export function AppShell({ user, timezone, route, pathname, onLogout, loggingOut
     return () => window.removeEventListener('research:plan-task', openCommand);
   }, []);
   useEffect(() => {
-    const open = (event: Event) => { const detail = (event as CustomEvent<{ input?: string; scope?: AiScope }>).detail; setCommandInput(detail?.input ?? ''); setCommandScope(detail?.scope); setCommandAuto(!!detail?.input?.trim()); setPanel('search'); };
+    const open = (event: Event) => { const detail = (event as CustomEvent<{ input?: string; scope?: AiScope; autoSubmit?: boolean }>).detail; setCommandInput(detail?.input ?? ''); setCommandScope(detail?.scope); setCommandAuto(detail?.autoSubmit ?? !!detail?.input?.trim()); setPanel('search'); };
     window.addEventListener('research:open-ai', open); return () => window.removeEventListener('research:open-ai', open);
   }, []);
   const navigation = <nav className="shell-nav" aria-label={text.navigation}>

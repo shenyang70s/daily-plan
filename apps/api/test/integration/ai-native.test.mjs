@@ -29,3 +29,27 @@ test('existing task work and fixed events can be scheduled and revised without c
 test('context limits are visible, selected resources remain available and parent request replay is idempotent',async t=>{const s=await fixture(t);let selected;for(let i=0;i<62;i++)selected=s.tasks.create(s.ctx,{title:'task '+i,type:'other',priority:'normal',due:null,durationMinutes:null,projectId:null,externalUrl:null,note:''},randomUUID());s.choose(plan([task('有界计划')]));const first=await s.run();assert.equal(s.seen[0].research.tasks.length,60);assert.equal(s.seen[0].research.truncated,true);assert.match(first.result.contextSummary,/截断/);const input={text:'继续修改',requestId:randomUUID(),parentRunId:first.id,scope:{type:'task',id:selected.id}},key=randomUUID();s.choose({kind:'clarification',question:'修改什么？'});const next=s.ai.start(s.ctx,input,key);assert.equal(s.ai.start(s.ctx,input,key).runId,next.runId);await tick();assert.equal(s.seen.at(-1).research.scope.resource.id,selected.id);assert.throws(()=>s.ai.start(s.other,{text:'x',requestId:randomUUID(),scope:input.scope},randomUUID()),e=>e.status===404);});
 test('undo cannot hide a reminder added after task creation even when the task version is unchanged',async t=>{const s=await fixture(t);s.choose(plan([task('后续新增提醒')]));const run=await s.run(),execution=s.ai.confirm(s.ctx,run.id,randomUUID());const {RemindersService}=await import('../../dist/modules/reminders/reminders.service.js');new RemindersService(s.db,()=>Date.parse('2026-11-01T01:00:00Z')).create(s.ctx,{targetType:'task',targetId:execution.items[0].id,mode:'absolute',at:'2026-11-02T00:00:00Z',timezone:'Asia/Shanghai'},randomUUID());assert.throws(()=>s.ai.undo(s.ctx,run.id,randomUUID()),e=>e.code==='VERSION_CONFLICT');assert.ok(s.tasks.get(s.ctx,execution.items[0].id));});
 test('undo of canceling a task cannot restore its hidden work blocks over a later fixed event',async t=>{const s=await fixture(t),t0=s.tasks.create(s.ctx,{title:'取消后产生新冲突',type:'research',priority:'normal',due:null,durationMinutes:60,projectId:null,externalUrl:null,note:''},randomUUID());const b=s.calendar.createBlock(s.ctx,{taskId:t0.id,expectedTaskVersion:t0.version,startAt:'2026-11-02T01:00:00Z',endAt:'2026-11-02T02:00:00Z',timezone:'Asia/Shanghai'},randomUUID());const current=s.tasks.get(s.ctx,t0.id);s.choose(plan([{kind:'task_update',id:t0.id,changes:{status:'canceled',expectedVersion:current.version}}]));const run=await s.run();s.ai.confirm(s.ctx,run.id,randomUUID());s.calendar.createEvent(s.ctx,{title:'后续固定事件',startAt:b.startAt,endAt:b.endAt,timezone:b.timezone,location:'',note:'',externalUrl:null},randomUUID());assert.throws(()=>s.ai.undo(s.ctx,run.id,randomUUID()),e=>e.code==='SCHEDULE_CONFLICT');assert.equal(s.tasks.get(s.ctx,t0.id).status,'canceled');});
+
+test('AI reminder scopes resolve exact owned targets and support confirmed adjustments', async t => {
+  const s = await fixture(t);
+  const { researchSnapshot } = await import('../../dist/modules/ai/context-builder.js');
+  const { RemindersService } = await import('../../dist/modules/reminders/reminders.service.js');
+  const submission = s.submissions.create(s.ctx, { name: 'Scoped deadlines', year: 2026, round: null, stage: 'planning', submissionUrl: null, draftUrl: null, nextAction: '' }, randomUUID());
+  const milestone = s.submissions.createMilestone(s.ctx, submission.id, { kind: 'full_paper', due: { kind: 'date', date: '2026-12-01' }, sourceTimezone: null, sourceUrl: null, officialUrl: null, verifiedAt: null, expectedSubmissionVersion: submission.version }, randomUUID());
+  const scoped = researchSnapshot(s.db, s.identity, s.ctx, now(), { type: 'milestone', id: milestone.id });
+  assert.equal(scoped.scope.resource.id, milestone.id);
+  assert.equal(scoped.scope.resource.version, milestone.version);
+  assert.equal(scoped.scope.resource.title, 'Scoped deadlines · full_paper');
+  assert.throws(() => researchSnapshot(s.db, s.identity, s.other, now(), { type: 'milestone', id: milestone.id }), e => e.status === 404);
+  const reminder = new RemindersService(s.db, now).create(s.ctx, { targetType: 'milestone', targetId: milestone.id, mode: 'absolute', at: '2026-11-02T00:00:00Z', timezone: 'Asia/Shanghai' }, randomUUID());
+  const selected = researchSnapshot(s.db, s.identity, s.ctx, now(), { type: 'reminder', id: reminder.id });
+  assert.equal(selected.scope.resource.id, reminder.id);
+  assert.equal(selected.scope.resource.target.id, milestone.id);
+  assert.throws(() => researchSnapshot(s.db, s.identity, s.other, now(), { type: 'reminder', id: reminder.id }), e => e.status === 404);
+  s.choose({ kind: 'plan', title: '指定提醒调整', explanation: '精确选择提醒', assumptions: [], actions: [{ kind: 'reminder_update', id: reminder.id, changes: { expectedVersion: reminder.version, mode: 'absolute', at: '2026-11-03T00:00:00Z', timezone: 'Asia/Shanghai' } }] });
+  const { runId } = s.ai.start(s.ctx, { text: '改为明天提醒', requestId: randomUUID(), intent: 'assist', scope: { type: 'reminder', id: reminder.id } }, randomUUID());
+  for (let i = 0; i < 100 && !['succeeded', 'failed'].includes(s.ai.get(s.ctx, runId).status); i++) await tick();
+  assert.equal(s.ai.get(s.ctx, runId).result?.kind, 'plan');
+  s.ai.confirm(s.ctx, runId, randomUUID());
+  assert.equal(s.db.get('SELECT version FROM reminders WHERE id=?', reminder.id).version, 2);
+});

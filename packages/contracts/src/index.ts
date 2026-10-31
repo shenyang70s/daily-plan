@@ -144,7 +144,7 @@ export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>;
 export interface PushConfigDto { enabled: boolean; publicKey: string | null }
 export interface PushStatusDto { active: boolean; deliveryStatus: string | null; lastErrorCode: string | null }
 
-export const AiInterpretSchema = z.object({ text: z.string().trim().min(1).max(2000), requestId: z.string().uuid(), intent: z.enum(['assist', 'capture']).default('assist'), parentRunId: z.string().uuid().optional(), scope: z.object({ type: z.enum(['task','event','block','submission','project']), id: z.string().uuid() }).strict().optional() }).strict();
+export const AiInterpretSchema = z.object({ text: z.string().trim().min(1).max(2000), requestId: z.string().uuid(), intent: z.enum(['assist', 'capture']).default('assist'), parentRunId: z.string().uuid().optional(), scope: z.object({ type: z.enum(['task','event','block','submission','project','milestone','reminder']), id: z.string().uuid() }).strict().optional() }).strict();
 export const AiDraftDeadlineSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('date'), date: localDate }).strict(),
   z.object({ kind: z.literal('local'), localDateTime: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/), timezone: z.string().min(1).max(64) }).strict(),
