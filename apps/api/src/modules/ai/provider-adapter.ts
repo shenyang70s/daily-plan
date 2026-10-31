@@ -1,5 +1,5 @@
 import type { InterpretContext } from './context-builder.js';
-import { interpretationPrompt, capturePrompt, planningPrompt } from './context-builder.js';
+import { interpretationPrompt, capturePrompt, planningPrompt, deletionPrompt } from './context-builder.js';
 import { AppError } from '../../common/app-error.js';
 export interface ModelProvider { readonly configured: boolean; readonly model: string; interpret(input: InterpretContext, signal: AbortSignal): Promise<unknown> }
 export class DeepSeekProvider implements ModelProvider {
@@ -9,7 +9,7 @@ export class DeepSeekProvider implements ModelProvider {
     if (!this.configured) throw new AppError(503, 'AI_NOT_CONFIGURED', 'DeepSeek 尚未配置，请设置服务端 DEEPSEEK_API_KEY');
     const timeout = AbortSignal.timeout(this.timeoutMs), combined = AbortSignal.any([signal, timeout]);
     try {
-      const response = await this.fetcher('https://api.deepseek.com/chat/completions', { method: 'POST', redirect: 'error', signal: combined, headers: { Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: this.model, messages: [{ role: 'system', content: interpretationPrompt + (input.intent === 'capture' ? `\n${capturePrompt}` : '') + planningPrompt }, { role: 'user', content: JSON.stringify(input) }], thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4000, stream: false }) });
+      const response = await this.fetcher('https://api.deepseek.com/chat/completions', { method: 'POST', redirect: 'error', signal: combined, headers: { Authorization: `Bearer ${this.key}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: this.model, messages: [{ role: 'system', content: interpretationPrompt + (input.intent === 'capture' ? `\n${capturePrompt}` : '') + planningPrompt + deletionPrompt }, { role: 'user', content: JSON.stringify(input) }], thinking: { type: 'disabled' }, response_format: { type: 'json_object' }, max_tokens: 4000, stream: false }) });
       if (!response.ok) { await response.body?.cancel(); throw new AppError(502, 'AI_PROVIDER_UNAVAILABLE', 'DeepSeek 请求失败，请稍后重试；普通任务功能仍可使用'); }
       if (!response.body) throw new AppError(502, 'AI_INVALID_OUTPUT', '模型未返回有效的结构化内容');
       const reader = response.body.getReader(); const parts: Uint8Array[] = []; let size = 0;

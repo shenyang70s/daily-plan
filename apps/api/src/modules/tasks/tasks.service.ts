@@ -126,6 +126,13 @@ export class TasksService {
       return { deleted_at: null };
     }, true);
   }
+  // Only server-stored execution snapshots reach this method, never client-supplied task snapshots.
+  undoFields(ctx: SessionContext, id: string, before: TaskDto, expectedVersion: number, key: string) {
+    return this.change(ctx, id, 'undo-fields', { expectedVersion }, key, (_row, tx) => {
+      if (before.projectId) this.requireProject(tx, ctx.userId, before.projectId);
+      return { title: before.title, type: before.type, status: before.status, priority: before.priority, ...this.dueColumns(before.due), duration_minutes: before.durationMinutes, project_id: before.projectId, note: before.note, external_url: before.externalUrl, completed_at: before.completedAt ? Date.parse(before.completedAt) : null, archived_at: before.archivedAt ? Date.parse(before.archivedAt) : null };
+    });
+  }
   reschedule(ctx: SessionContext, id: string, input: RescheduleTaskInput, key: string) {
     return this.change(ctx, id, 'reschedule', input, key, () => {
       if (input.scope !== 'deadline') throw new AppError(422, 'SCHEDULE_BLOCKS_UNAVAILABLE', '工作块调整将在日历功能开放后接入');

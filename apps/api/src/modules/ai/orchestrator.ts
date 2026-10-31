@@ -1,7 +1,9 @@
+import { createManualPlan } from './manual-plan.js';
+import { undoExecution } from './undo-execution.js';
 import { randomUUID } from 'node:crypto';
 import type { BeforeApplicationShutdown, OnApplicationBootstrap } from '@nestjs/common';
 import { AiDecisionSchema } from '@research/contracts';
-import type { AiConfigDto, AiInterpretResult, AiRunDto, AiPlan, AiExecutionDto } from '@research/contracts';
+import type { AiConfigDto, AiInterpretResult, AiRunDto, AiPlan, AiExecutionDto, ManualPlanInput } from '@research/contracts';
 import { normalizeDeadline, calendarTimezone } from '@research/domain';
 import type { Database } from '@research/persistence';
 import type { SessionContext, IdentityService } from '../identity/identity.service.js';
@@ -26,7 +28,10 @@ export class AiOrchestrator implements OnApplicationBootstrap, BeforeApplication
     return { id: String(row.id), execution: this.execution(ctx, id), superseded: !!this.db.get('SELECT id FROM ai_runs WHERE parent_run_id=? AND user_id=?', id, ctx.userId), status: row.status as AiRunDto['status'], phase: row.phase as AiRunDto['phase'], result: row.result_json ? JSON.parse(String(row.result_json)) as AiInterpretResult : null, error: row.error_code ? { code: String(row.error_code), message: String(row.error_message) } : null };
   }
   private execution(ctx: SessionContext, id: string): AiExecutionDto | null { const row = this.db.get('SELECT result_json FROM ai_executions WHERE run_id=? AND user_id=?', id, ctx.userId); return row ? JSON.parse(String(row.result_json)) as AiExecutionDto : null; }
-  confirm(ctx: SessionContext, id: string, key: string): AiExecutionDto { this.permitted(ctx); return new AiPlanExecutor(this.db, this.identity, this.now).execute(ctx, id, key); }
+  confirm(ctx: SessionContext, id: string, key: string, token?: string, acknowledgement?: string): AiExecutionDto { this.permitted(ctx, this.db.get('SELECT origin FROM ai_runs WHERE id=? AND user_id=?', id, ctx.userId)?.origin !== 'manual'); return new AiPlanExecutor(this.db, this.identity, this.now).execute(ctx, id, key, token, acknowledgement); }
+  plan(ctx: SessionContext, input: ManualPlanInput, key: string): AiRunDto { this.permitted(ctx, false); return this.get(ctx, createManualPlan(this.db, this.identity, ctx, input, key, this.now()).runId); }
+  deletionConfirmation(ctx: SessionContext, id: string, key: string) { this.permitted(ctx, false); return new AiPlanExecutor(this.db, this.identity, this.now).deletionConfirmation(ctx, id, key); }
+  undo(ctx: SessionContext, id: string, key: string) { this.permitted(ctx, false); return undoExecution(this.db, this.identity, ctx, id, key, this.now()); }
   private history(ctx: SessionContext, parent?: string): AiHistoryTurn[] {
     const turns: AiHistoryTurn[] = []; let id = parent;
     for (let i = 0; id && i < 8; i++) {
@@ -38,9 +43,9 @@ export class AiOrchestrator implements OnApplicationBootstrap, BeforeApplication
     }
     return turns;
   }
-  private permitted(ctx: SessionContext): void {
+  private permitted(ctx: SessionContext, requireAi = true): void {
     if (!this.db.get('SELECT id FROM sessions WHERE id=? AND user_id=? AND revoked_at IS NULL AND expires_at>?', ctx.sessionId, ctx.userId, this.now())) throw new AppError(401, 'UNAUTHENTICATED', '会话已失效，请重新登录');
-    if (!this.identity.getPreferences(ctx).ai) throw new AppError(403, 'AI_DISABLED', 'AI 功能已关闭，可在设置中开启');
+    if (requireAi && !this.identity.getPreferences(ctx).ai) throw new AppError(403, 'AI_DISABLED', 'AI 功能已关闭，可在设置中开启');
   }
   start(ctx: SessionContext, input: { text: string; requestId: string; intent?: 'assist' | 'capture'; parentRunId?: string | undefined; scope?: AiScope | undefined }, key: string): { runId: string } {
     this.permitted(ctx);

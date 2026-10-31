@@ -1,4 +1,4 @@
-import { calendarDateAt, calendarWindow, normalizeDeadline, shiftCalendarDate } from './index.js';
+import { calendarDateAt, calendarWindow, normalizeDeadline, shiftCalendarDate } from './calendar-time.js';
 type CalendarRange = { startAt: string; endAt: string; timezone: string };
 type TaskDue = { kind: 'date'; date: string } | { kind: 'instant'; at: string; timezone: string } | null;
 type CalendarItem = { kind: string; startAt?: string; endAt?: string };
@@ -20,4 +20,20 @@ export function suggestSchedule(input: { now: number; timezone: string; workStar
     if (start + duration <= to) return { startAt: new Date(start).toISOString(), endAt: new Date(start + duration).toISOString(), timezone: input.timezone };
   }
   return null;
+}
+
+export function planTaskSchedules(input: { now: number; timezone: string; workStart: string; workEnd: string; fromDate: string; throughDate: string; items: CalendarItem[]; tasks: { id: string; priority: 'high' | 'normal' | 'low'; due: TaskDue; durationMinutes: number | null }[] }) {
+  const priorities = { high: 0, normal: 1, low: 2 }, deadline = (due: TaskDue) => !due ? Infinity : due.kind === 'date' ? Date.parse(calendarWindow(due.date, 'day', input.timezone).to) : Date.parse(due.at);
+  const tasks = [...input.tasks].sort((a, b) => priorities[a.priority] - priorities[b.priority] || deadline(a.due) - deadline(b.due) || a.id.localeCompare(b.id));
+  const busy = [...input.items], scheduled: { taskId: string; range: CalendarRange }[] = [], unplanned: { taskId: string; reason: string }[] = [];
+  for (const task of tasks) {
+    let range: CalendarRange | null = null;
+    for (let day = input.fromDate, index = 0; day <= input.throughDate && index < 7; day = shiftCalendarDate(day, 1), index++) {
+      range = suggestSchedule({ ...input, durationMinutes: task.durationMinutes && task.durationMinutes > 0 ? task.durationMinutes : 30, due: task.due, preferredDate: day, items: busy });
+      if (range) break;
+    }
+    if (range) { scheduled.push({ taskId: task.id, range }); busy.push({ kind: 'block', ...range }); }
+    else unplanned.push({ taskId: task.id, reason: '所选日期工作时间内没有满足预计时长与截止期限的空档' });
+  }
+  return { scheduled, unplanned };
 }

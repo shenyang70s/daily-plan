@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { prepareUndo } from './undo-execution.js';
 import { AiActionSchema, CreateTaskSchema, CreateReminderSchema, CreateMilestoneSchema } from '@research/contracts';
-import type { AiAction, AiExecutionDto, AiImpact, AiPlan, CalendarRange, CalendarItem, TaskDto } from '@research/contracts';
+import type { AiAction, AiDeleteChallenge, AiExecutionDto, AiImpact, AiPlan, CalendarRange, CalendarItem, TaskDto } from '@research/contracts';
 import type { Database, Transaction } from '@research/persistence';
 import { calendarDateAt, calendarWindow, shiftCalendarDate, suggestSchedule, calendarTimezone } from '@research/domain';
 import type { SessionContext, IdentityService } from '../identity/identity.service.js';
@@ -11,8 +12,8 @@ import { RemindersService } from '../reminders/reminders.service.js';
 import { AppError } from '../../common/app-error.js';
 import { writeResource } from '../../common/idempotency.js';
 import type { ResearchSnapshot } from './context-builder.js';
-const labels: Record<AiAction['kind'], string> = { task_create: '创建任务', task_update: '修改任务', block_create: '安排工作块', block_update: '调整工作块', event_create: '创建固定事件', event_update: '修改固定事件', project_create: '创建课题', project_update: '修改课题', submission_create: '创建投稿', submission_update: '修改投稿', reminder_create: '创建提醒', reminder_update: '调整提醒', reminder_cancel: '取消提醒' };
-const states: Record<string, string> = { inbox: '收集箱', todo: '待办', in_progress: '进行中', done: '已完成', canceled: '已取消', low: '低', normal: '普通', high: '高', planning: '计划中', preparing: '准备中', submitted: '已投稿', under_review: '审稿中', pending: '待提醒', sent: '已提醒', experiment: '实验', paper_reading: '论文阅读', learning: '知识学习', research: '科研杂项', meeting_prep: '会议准备', personal: '个人事项', other: '其他', internal_review: '内部审阅', rebuttal: '答辩', decision: '结果待定', accepted: '录用', rejected: '拒稿', withdrawn: '撤稿' };
+const labels: Record<AiAction['kind'], string> = { task_delete: '删除任务', task_create: '创建任务', task_update: '修改任务', block_create: '安排工作块', block_update: '调整工作块', event_create: '创建固定事件', event_update: '修改固定事件', project_create: '创建课题', project_update: '修改课题', submission_create: '创建投稿', submission_update: '修改投稿', reminder_create: '创建提醒', reminder_update: '调整提醒', reminder_cancel: '取消提醒' };
+const states: Record<string, string> = { inbox: '收集箱', todo: '待办', in_progress: '进行中', done: '已完成', canceled: '已取消', low: '低', normal: '普通', high: '高', planning: '计划中', preparing: '准备中', submitted: '已投稿', under_review: '审稿中', pending: '待提醒', sent: '已提醒', deleted: '删除后可在24小时内恢复', experiment: '实验', paper_reading: '论文阅读', learning: '知识学习', research: '科研杂项', meeting_prep: '会议准备', personal: '个人事项', other: '其他', internal_review: '内部审阅', rebuttal: '答辩', decision: '结果待定', accepted: '录用', rejected: '拒稿', withdrawn: '撤稿' };
 function describe(value: unknown): string[] {
   if (!value || typeof value !== 'object') return [];
   const v = value as Record<string, unknown>, lines: string[] = [];
@@ -29,7 +30,7 @@ export class AiPlanExecutor {
   private services(db = this.db) { const tasks = new TasksService(db, this.identity, this.now); return { tasks, calendar: new CalendarService(db, tasks, this.identity), submissions: new SubmissionsService(db, this.identity, this.now), reminders: new RemindersService(db, this.now) }; }
   private before(ctx: SessionContext, a: AiAction): unknown {
     const { tasks, calendar, submissions } = this.services();
-    if (a.kind === 'task_update') return tasks.get(ctx, a.id);
+    if (a.kind === 'task_update' || a.kind === 'task_delete') return tasks.get(ctx, a.id);
     if (a.kind === 'block_update') return calendar.getBlock(ctx, a.id);
     if (a.kind === 'event_update') return calendar.getEvent(ctx, a.id);
     if (a.kind === 'project_update') return tasks.getProject(ctx, a.id);
@@ -80,8 +81,9 @@ export class AiPlanExecutor {
       if (a.kind === 'task_create' && a.task.projectId) reference('project', a.task.projectId, index);
       if (a.kind === 'task_update' && a.changes.projectId) reference('project', a.changes.projectId, index);
       if (a.kind === 'reminder_create') reference(a.targetType, a.targetId, index);
+      if (a.kind === 'block_update') reference('task', calendar.getBlock(ctx, a.id).taskId, index);
       const before = this.before(ctx, a) as { version?: number } | null;
-      const expected = 'changes' in a ? a.changes.expectedVersion : a.kind === 'reminder_cancel' ? a.expectedVersion : undefined;
+      const expected = 'changes' in a ? a.changes.expectedVersion : a.kind === 'reminder_cancel' || a.kind === 'task_delete' ? a.expectedVersion : undefined;
       if (before && expected !== before.version) throw new AppError(409, 'VERSION_CONFLICT', '方案依据的记录版本已变化，请重新生成');
       if (a.kind === 'task_create' && a.autoSchedule && !a.schedule) {
         if (a.task.durationMinutes == null || a.task.durationMinutes === 0) { a.task.durationMinutes = 30; warnings.push(`“${a.task.title}”未给出有效预计时长，暂按30分钟安排。`); }
@@ -92,15 +94,27 @@ export class AiPlanExecutor {
       }
       const range = a.kind === 'task_create' ? a.schedule : a.kind === 'event_create' ? a.event : a.kind === 'block_create' ? a.input : a.kind === 'block_update' ? a.changes : a.kind === 'event_update' ? { ...(before as CalendarRange | null), ...a.changes } : undefined;
       if (range && 'startAt' in range && range.startAt && range.endAt) { calendarTimezone(range.timezone!); if (Date.parse(range.startAt) <= this.now() || Date.parse(range.endAt) <= Date.parse(range.startAt)) throw new AppError(422, 'AI_INVALID_SCHEDULE', '请设置未来的有效工作时段'); reserved.push({ kind: 'block', startAt: range.startAt, endAt: range.endAt }); }
-      const after = a.kind === 'task_create' ? { ...a.task, schedule: a.schedule } : a.kind === 'event_create' ? a.event : a.kind === 'project_create' ? a.project : a.kind === 'submission_create' ? { ...a.submission, milestones: a.milestones } : a.kind === 'reminder_create' ? { title: targetTitle(a.targetType, a.targetId), policy: a.policy } : a.kind === 'block_create' ? { ...a.input, title: this.services().tasks.get(ctx, a.input.taskId).title } : a.kind === 'reminder_cancel' ? { status: 'canceled' } : a.changes;
+      const after = a.kind === 'task_delete' ? { status: 'deleted', note: `工作块将从日历隐藏，待触发提醒将取消；24小时内可在无后续修改时撤销。` } : a.kind === 'task_create' ? { ...a.task, schedule: a.schedule } : a.kind === 'event_create' ? a.event : a.kind === 'project_create' ? a.project : a.kind === 'submission_create' ? { ...a.submission, milestones: a.milestones } : a.kind === 'reminder_create' ? { title: targetTitle(a.targetType, a.targetId), policy: a.policy } : a.kind === 'block_create' ? { ...a.input, title: this.services().tasks.get(ctx, a.input.taskId).title } : a.kind === 'reminder_cancel' ? { status: 'canceled' } : a.changes;
       const existing = before as { title?: string; name?: string } | null;
       impacts.push({ label: `${labels[a.kind]}${existing?.title || existing?.name ? ` · ${existing.title ?? existing.name}` : ''}`, before: describeForUser(before), after: describeForUser(after) });
       return a;
     });
     return { actions: normalized, impacts, warnings, dependencies };
   }
-  execute(ctx: SessionContext, runId: string, key: string): AiExecutionDto {
-    return writeResource(this.db, ctx.userId, `ai:confirm:${runId}`, key, { runId }, tx => {
+  deletionConfirmation(ctx: SessionContext, runId: string, key: string): AiDeleteChallenge {
+    return writeResource(this.db, ctx.userId, `ai:delete-review:${runId}`, key, { runId }, tx => {
+      const row = tx.get('SELECT status,result_json,created_at FROM ai_runs WHERE id=? AND user_id=?', runId, ctx.userId);
+      if (!row) throw new AppError(404, 'AI_RUN_NOT_FOUND', '找不到这次方案');
+      const plan = row.result_json ? JSON.parse(String(row.result_json)) as AiPlan : null;
+      const count = plan?.kind === 'plan' ? plan.actions.filter(a => a.kind === 'task_delete').length : 0;
+      if (row.status !== 'succeeded' || !count || this.now() - Number(row.created_at) >= 1800000 || tx.get('SELECT id FROM ai_runs WHERE parent_run_id=? AND user_id=?', runId, ctx.userId)) throw new AppError(409, 'AI_DELETE_REVIEW_UNAVAILABLE', '请重新生成有效的删除预览');
+      const token = randomBytes(32).toString('hex'), expires = this.now() + 300000;
+      tx.run('INSERT INTO ai_delete_confirmations(run_id,user_id,token_hash,expires_at) VALUES(?,?,?,?) ON CONFLICT(run_id) DO UPDATE SET token_hash=excluded.token_hash,expires_at=excluded.expires_at', runId, ctx.userId, createHash('sha256').update(token).digest('hex'), expires);
+      return { token, count, expiresAt: new Date(expires).toISOString() };
+    });
+  }
+  execute(ctx: SessionContext, runId: string, key: string, deletionToken?: string, acknowledgement?: string): AiExecutionDto {
+    return writeResource(this.db, ctx.userId, `ai:confirm:${runId}`, key, { runId, ...(deletionToken ? { deletionToken, acknowledgement } : {}) }, tx => {
       const row = tx.get('SELECT * FROM ai_runs WHERE id=? AND user_id=?', runId, ctx.userId);
       if (!row) throw new AppError(404, 'AI_RUN_NOT_FOUND', '找不到这次 AI 方案');
       const prior = tx.get('SELECT result_json FROM ai_executions WHERE run_id=? AND user_id=?', runId, ctx.userId); if (prior) return JSON.parse(String(prior.result_json)) as AiExecutionDto;
@@ -108,6 +122,11 @@ export class AiPlanExecutor {
       const plan = row.result_json ? JSON.parse(String(row.result_json)) as AiPlan : null;
       if (row.status !== 'succeeded' || plan?.kind !== 'plan') throw new AppError(422, 'AI_PLAN_REQUIRED', '请先生成可确认的方案');
       if (this.now() - Number(row.created_at) > 30 * 60000) throw new AppError(409, 'AI_PLAN_EXPIRED', '方案已超过30分钟，请根据最新数据重新生成');
+      const deleteCount = plan.actions.filter(a => a.kind === 'task_delete').length;
+      if (deleteCount) {
+        const proof = tx.get('SELECT token_hash,expires_at FROM ai_delete_confirmations WHERE run_id=? AND user_id=?', runId, ctx.userId);
+        if (!deletionToken || acknowledgement !== `删除${deleteCount}项任务` || !proof || Number(proof.expires_at) <= this.now() || proof.token_hash !== createHash('sha256').update(deletionToken).digest('hex')) throw new AppError(409, 'AI_DELETE_CONFIRMATION_REQUIRED', '请完成第二次删除核对并输入准确任务数量');
+      }
       for (const dependency of plan.dependencies) {
         const table = ({ task: 'tasks', block: 'task_schedule_blocks', event: 'calendar_events', project: 'projects', submission: 'submissions', milestone: 'submission_milestones', reminder: 'reminders' } as Record<string, string>)[dependency.type];
         const current = table ? tx.get(`SELECT version FROM ${table} WHERE id=? AND user_id=?`, dependency.id, ctx.userId) : undefined;
@@ -124,9 +143,10 @@ export class AiPlanExecutor {
       const execution: AiExecutionDto = { runId, executedAt: new Date(this.now()).toISOString(), items: results };
       tx.run('INSERT INTO ai_executions(run_id,user_id,result_json,created_at) VALUES(?,?,?,?)', runId, ctx.userId, '{}', this.now());
       for (const [index, action] of plan.actions.entries()) {
-        const a = AiActionSchema.parse(action), before = this.before(ctx, a), actionKey = `${runId}:${index}`, resolve = (id: string) => id.startsWith('new:') ? results[Number(id.slice(4))]!.id : id;
+        const a = AiActionSchema.parse(action), before = this.before(ctx, a), auditBefore = a.kind === 'block_create' || a.kind === 'block_update' ? { resource: before, parentTask: services.tasks.get(ctx, a.kind === 'block_create' ? a.input.taskId : (before as { taskId: string }).taskId) } : before, actionKey = `${runId}:${index}`, resolve = (id: string) => id.startsWith('new:') ? results[Number(id.slice(4))]!.id : id;
         let result: unknown, id: string, href: string;
         if (a.kind === 'task_create') { const task = CreateTaskSchema.parse({ ...a.task, projectId: a.task.projectId ? resolve(a.task.projectId) : null }); result = a.schedule ? services.calendar.createTask(ctx, { task, schedule: a.schedule }, actionKey).task : services.tasks.create(ctx, task, actionKey); id = (result as TaskDto).id; href = `/tasks/${id}`; }
+        else if (a.kind === 'task_delete') { result = services.tasks.remove(ctx, a.id, { expectedVersion: a.expectedVersion }, actionKey); id = a.id; href = '/tasks'; }
         else if (a.kind === 'task_update') { result = services.tasks.update(ctx, a.id, a.changes, actionKey); id = a.id; href = `/tasks/${id}`; }
         else if (a.kind === 'block_create') { result = services.calendar.createBlock(ctx, a.input, actionKey); id = resultId(result); href = `/calendar/blocks/${id}`; }
         else if (a.kind === 'block_update') { result = services.calendar.updateBlock(ctx, a.id, a.changes, actionKey); id = a.id; href = `/calendar/blocks/${id}`; }
@@ -146,8 +166,9 @@ export class AiPlanExecutor {
         } else if (a.kind === 'reminder_update') { result = services.reminders.update(ctx, a.id, a.changes, actionKey); id = a.id; href = '/today'; }
         else { result = services.reminders.cancel(ctx, a.id, { expectedVersion: a.expectedVersion }, actionKey); id = a.id; href = '/today'; }
         results.push({ id, href, label: `${labels[a.kind]}：${resultTitle(result)}` });
-        tx.run('INSERT INTO ai_action_audits(id,run_id,user_id,action_index,action_json,before_json,after_json,created_at) VALUES(?,?,?,?,?,?,?,?)', randomUUID(), runId, ctx.userId, index, JSON.stringify(a), JSON.stringify(before), JSON.stringify(result), this.now());
+        tx.run('INSERT INTO ai_action_audits(id,run_id,user_id,action_index,action_json,before_json,after_json,created_at) VALUES(?,?,?,?,?,?,?,?)', randomUUID(), runId, ctx.userId, index, JSON.stringify(a), JSON.stringify(auditBefore), JSON.stringify(result), this.now());
       }
+      const undo = prepareUndo(tx, ctx, runId, this.now(), plan.actions); if (undo) execution.undo = undo;
       tx.run('UPDATE ai_executions SET result_json=? WHERE run_id=? AND user_id=?', JSON.stringify(execution), runId, ctx.userId);
       return execution;
     });

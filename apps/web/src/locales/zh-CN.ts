@@ -17,7 +17,7 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与 AI 方案',contextNext:'接下来',contextUpcoming:'计划管理与备份恢复',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与 AI 方案',contextNext:'接下来',contextUpcoming:'账户数据管理与备份恢复',
  notificationSettingsNote:'关闭通知会暂停派发，重新开启后处理待发送提醒。静音模式按用户时区在 22:00–08:00 延后派发；已有通知始终可查看。',quiet:'静音模式',aiSettingsNote:'AI 使用 DeepSeek 解析输入；关闭后停止接受新的 AI 请求，普通任务功能不受影响。',proactive:'主动建议',
 };
 

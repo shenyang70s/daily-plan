@@ -153,6 +153,7 @@ export const AiDraftSchema = CreateTaskSchema.omit({ due: true, projectId: true,
 const aiReference = z.string().uuid().or(z.string().regex(/^new:[0-9]{1,2}$/));
 const aiTask = CreateTaskSchema.extend({ projectId: aiReference.nullable().default(null) });
 export const AiActionSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('task_delete'), id: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict(),
   z.object({ kind: z.literal('task_create'), task: aiTask, schedule: CalendarRangeSchema.optional(), autoSchedule: z.boolean().default(false), preferredDate: localDate.optional() }).strict(),
   z.object({ kind: z.literal('task_update'), id: z.string().uuid(), changes: UpdateTaskSchema }).strict(),
   z.object({ kind: z.literal('block_create'), input: CreateScheduleBlockSchema.omit({ conflictToken: true }) }).strict(),
@@ -174,9 +175,10 @@ export const AiActionSchema = z.discriminatedUnion('kind', [
 export const AiPlanDecisionSchema = z.object({ kind: z.literal('plan'), title: z.string().min(1).max(200), explanation: z.string().min(1).max(2000), actions: z.array(AiActionSchema).min(1).max(12), assumptions: z.array(z.string().max(300)).max(8).default([]) }).strict();
 export type AiAction = z.infer<typeof AiActionSchema>;
 export interface AiImpact { label: string; before: string[]; after: string[] }
-export interface AiExecutionDto { runId: string; executedAt: string; items: { id: string; label: string; href: string }[] }
+export interface AiExecutionDto { undo?: { expiresAt: string; undoneAt?: string }; runId: string; executedAt: string; items: { id: string; label: string; href: string }[] }
 export interface AiPlan extends z.infer<typeof AiPlanDecisionSchema> { impacts: AiImpact[]; contextSummary: string; warnings: string[]; dependencies: { type: string; id: string; version: number }[] }
-export const AiConfirmSchema = z.object({ confirm: z.literal(true) }).strict();
+export const AiConfirmSchema = z.object({ confirm: z.literal(true), deletionToken: z.string().regex(/^[a-f0-9]{64}$/).optional(), deleteAcknowledgement: z.string().max(80).optional() }).strict();
+export interface AiDeleteChallenge { token: string; count: number; expiresAt: string }
 export const AiDecisionSchema = z.discriminatedUnion('kind', [
   AiPlanDecisionSchema,
   z.object({ kind: z.literal('query'), tool: z.literal('tasks'), params: TaskListSchema }).strict(),
@@ -208,3 +210,11 @@ export interface ConferenceUpdatePreview {
   sourceUrl: string | null; stale: boolean; issues: string[]; items: ConferenceUpdateItem[];
 }
 export interface ConferenceUpdateResult { submission: SubmissionDto; applied: number; proposalId: string }
+
+const selectedTaskRefs = z.array(z.object({ id: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict()).min(1).max(12).refine(rows => new Set(rows.map(r => r.id)).size === rows.length, 'Duplicate tasks');
+export const ManualPlanSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('schedule'), tasks: selectedTaskRefs, fromDate: localDate, throughDate: localDate }).strict(),
+  z.object({ kind: z.literal('batch'), tasks: selectedTaskRefs, operation: z.enum(['complete','postpone','delete']), due: TaskDueSchema.optional() }).strict(),
+  z.object({ kind: z.literal('move_block'), blockId: z.string().uuid(), expectedVersion: z.number().int().min(1), range: CalendarRangeSchema }).strict(),
+]);
+export type ManualPlanInput = z.infer<typeof ManualPlanSchema>;
