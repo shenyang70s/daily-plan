@@ -1,13 +1,18 @@
+export const taskCategories = ['experiment', 'paper_reading', 'learning', 'research', 'meeting_prep', 'personal'] as const;
 export const primaryPages = ['today', 'inbox', 'tasks', 'calendar', 'submissions'] as const;
 export const settingsSections = ['general', 'notifications', 'ai', 'integrations', 'account'] as const;
 export type PrimaryPage = typeof primaryPages[number];
 export type SettingsSection = typeof settingsSections[number];
-export type Route = { page: PrimaryPage; resourceId?: string; resourceKind?: 'event' | 'block' }
+export type Route = { page: PrimaryPage; resourceId?: string; resourceKind?: 'event' | 'block'; taskType?: typeof taskCategories[number] | 'other'; date?: string }
   | { page: 'settings'; section: SettingsSection }
   | { page: 'notFound' };
 
 export function resolveRoute(pathname: string): Route {
-  const path = pathname.replace(/\/$/, '') || '/';
+  const [rawPath = '/', rawQuery = ''] = pathname.split('?');
+  const path = rawPath.replace(/\/$/, '') || '/', query = new URLSearchParams(rawQuery);
+  const type = query.get('type'), date = query.get('date');
+  if (path === '/tasks' && [...taskCategories, 'other'].some(item => item === type)) return { page: 'tasks', taskType: type as typeof taskCategories[number] | 'other' };
+  if (path === '/calendar' && date && /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date) return { page: 'calendar', date };
   if (path === '/') return { page: 'today' };
   for (const page of primaryPages) {
     if (path === `/${page}`) return { page };

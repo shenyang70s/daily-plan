@@ -2,13 +2,13 @@ export const text={
  brand:'Research Tasks',eyebrow:'YOUR RESEARCH, IN FOCUS',title:'把注意力，留给重要的研究。',
  loginTitle:'登录研究空间',loginDescription:'管理任务、安排时间，跟踪重要截止日期。',username:'用户名',password:'口令',login:'登录',loggingIn:'正在登录…',accountHelp:'尚无账号？请联系管理员创建。',
  checking:'正在连接研究空间…',unavailable:'暂时无法连接服务',retry:'重试',logout:'退出登录',greeting:'研究空间已就绪',
- setupNote:'当前已开放登录和偏好设置，任务管理页面将在后续阶段接入。',settings:'时间与偏好',timezone:'默认时区',workStart:'工作开始时间',workEnd:'工作结束时间',notify:'应用内提醒',ai:'启用 AI 入口',save:'保存设置',saving:'正在保存…',saved:'设置已保存',footer:'任务、时间、提醒。让研究井然有序。',requestFailed:'操作失败，请稍后重试。',invalidResponse:'服务返回的数据不完整。',
+ setupNote:'当前已开放登录和偏好设置，任务管理页面将在后续阶段接入。',settings:'时间与偏好',timezone:'默认时区',workStart:'工作开始时间',workEnd:'工作结束时间',notify:'接收提醒',ai:'启用 AI 入口',save:'保存设置',saving:'正在保存…',saved:'设置已保存',footer:'任务、时间、提醒。让研究井然有序。',requestFailed:'操作失败，请稍后重试。',invalidResponse:'服务返回的数据不完整。',
  versionConflict:'记录已被更新，请刷新后再试。',sessionExpired:'登录已过期，请重新登录。',
- pageLabels:{today:'今天',inbox:'收集箱',tasks:'全部任务',calendar:'日历',submissions:'投稿',settings:'设置',notFound:'页面未找到'},
+ pageLabels:{today:'今天',inbox:'收集箱',tasks:'全部任务',calendar:'日历',submissions:'投稿追踪',settings:'设置',notFound:'页面未找到'},
  sectionLabels:{general:'通用',notifications:'通知',ai:'AI',integrations:'集成',account:'账户与数据'},
  pageDescriptions:{today:'专注今天需要推进的研究工作。',inbox:'先记录想法，再决定下一步。',tasks:'在同一个地方整理和跟踪研究任务。',calendar:'把工作时间与截止日期分别安排。',submissions:'跟踪投稿阶段、重要节点和时间来源。'},
  workspaceName:'个人研究空间',navigation:'主导航',settingsNavigation:'设置导航',openMenu:'打开导航',closeMenu:'关闭导航',skipToContent:'跳到主要内容',
- search:'全局搜索',searchPlaceholder:'搜索页面名称…',searchHelp:'目前支持页面导航搜索；任务和投稿内容搜索将在对应功能开放后接入。',noSearchResults:'没有匹配的页面',noSearchResultsHelp:'试试“任务”“日历”或“设置”。',
+ search:'全局搜索',searchPlaceholder:'搜索页面名称…',searchHelp:'此处搜索页面名称；查询任务、日历和投稿请切换到 AI 助手。',noSearchResults:'没有匹配的页面',noSearchResultsHelp:'试试“任务”“日历”或“设置”。',
  notifications:'通知中心',
  close:'关闭',backToToday:'返回今天',notFoundTitle:'找不到这个页面',notFoundHelp:'请检查地址，或通过左侧导航进入研究空间。',
  pendingTitle:'任务管理即将接入',pendingHelp:'这里将展示保存在账户中的真实任务。当前可以先设置时区、工作时间和使用偏好。',
@@ -17,8 +17,8 @@ export const text={
  taskDetail:'任务详情',submissionDetail:'投稿详情',detailPending:'详情功能待接入',detailHelp:'当前尚不能读取这条记录。功能开放后将根据账户权限加载实际内容。',
  integrationsPending:'暂无可用的外部集成',integrationsHelp:'CCF-DDL 导入与其他集成接入后，将在这里显示实际状态。',
  accountDataPending:'账户数据功能待接入',accountDataHelp:'数据导出和账户删除功能将在后续阶段开放。',currentAccount:'当前账户',
- openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与通知',contextNext:'接下来',contextUpcoming:'Web Push 与 AI',
- notificationSettingsNote:'关闭通知会暂停派发，重新开启后处理待发送提醒。静音模式按用户时区在 22:00–08:00 延后派发；已有通知始终可查看。',quiet:'静音模式',aiSettingsNote:'这里保存 AI 使用偏好；真实模型服务尚未接入。',proactive:'主动建议',
+ openSettings:'设置使用偏好',contextTitle:'研究工作台',contextDescription:'从收集想法到安排工作，再到跟踪投稿节点，让研究按自己的节奏推进。',contextStatus:'已开放',contextAvailable:'任务、日历、投稿、提醒与 AI 查询',contextNext:'接下来',contextUpcoming:'提案确认与来源更新比较',
+ notificationSettingsNote:'关闭通知会暂停派发，重新开启后处理待发送提醒。静音模式按用户时区在 22:00–08:00 延后派发；已有通知始终可查看。',quiet:'静音模式',aiSettingsNote:'AI 使用 DeepSeek 解析输入；关闭后停止接受新的 AI 请求，普通任务功能不受影响。',proactive:'主动建议',
 };
 
 export const tasksText = {
@@ -29,7 +29,7 @@ export const tasksText = {
   allEmpty: '还没有任务', allEmptyHelp: '用上方输入框记录第一项研究工作。', filteredEmpty: '没有符合条件的任务', filteredEmptyHelp: '调整筛选条件，或清除筛选后再试。',
   search: '搜索任务', searchPlaceholder: '搜索标题或备注', allTypes: '全部类型', allStatuses: '全部状态', allPriorities: '全部优先级', allProjects: '全部课题', allDue: '全部期限', dueToday: '今天到期', overdue: '已逾期', noDue: '无截止日期', dueFrom: '截止日期从', dueTo: '截止日期至', clearFilters: '清除筛选', showArchived: '已归档', activeTasks: '未归档',
   type: '任务类型', status: '状态', priority: '优先级', project: '所属课题', noProject: '不关联课题', duration: '预计时长（分钟）', note: '备注', externalUrl: '外部链接',
-  types: { experiment: '实验', paper_reading: '论文阅读', learning: '学习', research: '研究', meeting_prep: '会议准备', personal: '个人', other: '其他' },
+  types: { experiment: '实验', paper_reading: '论文阅读', learning: '知识学习', research: '科研杂项', meeting_prep: '会议准备', personal: '个人事项', other: '其他' },
   statuses: { inbox: '收集箱', todo: '待办', in_progress: '进行中', done: '已完成', canceled: '已取消' }, priorities: { low: '低', normal: '普通', high: '高' },
   deadline: '截止时间', deadlineKind: '期限类型', none: '不设置', dateOnly: '仅日期', instant: '精确时刻', date: '截止日期', instantAt: '截止时刻（含 UTC 或偏移）', timezone: '来源时区', instantHelp: '例如 2026-11-10T23:59:59+08:00。精确时刻保留秒和来源时区；不会自动创建工作块。',
   complete: '完成', reopen: '重新打开', archive: '归档', archiveDone: '任务已归档', completed: '任务已完成', reopened: '任务已重新打开', save: '保存任务', saving: '正在保存…', saved: '任务已保存', invalidInput: '请检查标题、日期、链接和时长；精确时刻需包含 UTC 或偏移。',
@@ -54,7 +54,7 @@ export const calendarText = {
 };
 
 export const submissionText = {
-  title: '投稿', add: '添加投稿', createTitle: '新建投稿', name: '会议 / 期刊名称', year: '年份（可选）', round: '轮次（可选）', stage: '投稿阶段', submissionUrl: '投稿系统链接', draftUrl: '草稿链接', nextAction: '下一步行动',
+  title: '投稿追踪', add: '添加投稿', createTitle: '新建投稿', name: '会议 / 期刊名称', year: '年份（可选）', round: '轮次（可选）', stage: '投稿阶段', submissionUrl: '投稿系统链接', draftUrl: '草稿链接', nextAction: '下一步行动',
   stages: { planning: '计划中', preparing: '准备中', internal_review: '内部审阅', submitted: '已提交', under_review: '审稿中', rebuttal: '答辩中', decision: '等待决定', accepted: '已录用', rejected: '未录用', withdrawn: '已撤回' },
   kinds: { abstract: '摘要', full_paper: '全文', rebuttal: '答辩', notification: '结果通知', camera_ready: '最终稿', other: '其他节点' },
   search: '搜索投稿', searchPlaceholder: '搜索名称、轮次或下一步行动', allStages: '全部阶段', active: '正在跟进', archived: '已归档', archiveFilter: '归档状态', clearFilters: '清除筛选', loadMore: '加载更多', loading: '正在加载投稿…', retry: '重试', unavailable: '投稿加载失败',
@@ -84,4 +84,22 @@ export const reminderText = {
   policy: '提醒由服务端保存和调度。通知偏好与静音时段可能延后派发。', relativeHelp: '尚未触发的相对提醒会跟随期限调整；日期型期限必须明确时刻和时区。', absoluteHelp: '指定时刻不会随目标期限变化。夏令时重复或缺失时刻请改用 UTC 时区填写。',
   invalidTime: '提醒时间或时区无效，请检查夏令时与时区填写。', failed: '投递失败，请重新安排', states: { pending: '待触发', sent: '已发送', canceled: '已取消' },
   unread: '未读', empty: '暂无通知', read: '标记已读', snooze: '10 分钟后提醒', snoozedUntil: '已安排稍后提醒：', more: '加载更多', centerHelp: '服务端生成的通知会保留在这里。关闭浏览器后仍可在下次登录查看。',
+} as const;
+
+export const pushText = {
+  title: '浏览器推送', help: '主动开启后，可在关闭页面时接收通用系统提醒。订阅绑定本次登录会话，退出或会话失效后停止发送；重新登录请再次开启。应用内通知始终保留。',
+  loading: '正在检查浏览器推送…', unsupported: '当前浏览器或访问地址不支持推送，请使用支持推送的浏览器与 HTTPS（本机开发可用 localhost 或 127.0.0.1）。',
+  unconfigured: '服务端尚未配置推送密钥，当前使用应用内通知。', denied: '浏览器通知权限已拒绝，请在站点权限中允许后刷新。', active: '此浏览器已开启推送', inactive: '此浏览器尚未为当前会话开启推送',
+  browserFailed: '浏览器推送服务暂不可用，请检查站点权限和网络后重试；应用内通知不受影响。', enable: '开启此浏览器推送', disable: '停用此浏览器推送', refresh: '刷新推送状态', delivery: '最近投递状态', deliveryError: '投递遇到问题，请查看应用内通知；订阅失效时请重新开启',
+  states: { pending: '等待发送', running: '发送中', sent: '推送服务已接受', failed: '发送失败', canceled: '已取消' },
+} as const;
+
+export const aiText = {
+  tab: 'AI 助手', navigation: '页面导航', help: '结合当前账户的任务、日程、课题、投稿节点和提醒生成方案，也可以查询已有记录。你可连续修改，确认后才执行。',
+  loading: '正在检查 AI 服务…', disabled: 'AI 已在偏好设置中关闭。', settings: '打开 AI 设置', unconfigured: 'DeepSeek 尚未配置，请在服务端设置 DEEPSEEK_API_KEY。页面导航和普通任务功能仍可使用。',
+  input: '告诉 AI 你想做什么', placeholder: '例如：今天有哪些任务？ / 查询本周日历 / 明天下午看论文', submit: '解析', running: '正在解析…', stop: '停止解析', refresh: '刷新',
+  clarification: '需要补充信息', clarificationHelp: '在上方直接补充回答，AI 会结合此前对话继续生成方案。', draft: '任务草案', draftHelp: '这是旧格式草案，尚未创建。请继续输入要求，生成可确认的新方案。',
+  title: '标题', due: '期限', note: '备注', noDue: '无期限 · 收集箱', dateOnly: '仅日期', manual: '前往任务页面手动创建',
+  resources: { tasks: '任务查询结果', calendar: '日历查询结果', submissions: '投稿查询结果' }, items: '项', actualData: '来自当前账户的实际记录', empty: '没有符合条件的记录。', truncated: '仅展示前 30 项，请补充筛选条件或进入对应列表继续查看。',
+  phases: { queued: '等待解析…', interpreting: 'DeepSeek 正在解析意图…', querying: '正在查询当前账户的数据…', completed: '解析完成', failed: '解析失败', canceled: '解析已停止' },
 } as const;

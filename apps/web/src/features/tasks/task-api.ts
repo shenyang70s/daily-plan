@@ -18,7 +18,7 @@ export function useResourceWrite<TInput, TResult>(userId: string, write: (input:
     },
     onSuccess: async result => {
       attempt.current = null;
-      await Promise.all(['tasks', 'task', 'projects', 'calendar', 'calendarEvent', 'calendarBlock', 'submissions', 'submission', 'reminders', 'notifications', 'notificationStatus'].map(resource => client.invalidateQueries({ queryKey: [resource, userId] })));
+      await Promise.all(['tasks', 'task', 'inboxCount', 'projects', 'calendar', 'calendarEvent', 'calendarBlock', 'submissions', 'submission', 'reminders', 'notifications', 'notificationStatus'].map(resource => client.invalidateQueries({ queryKey: [resource, userId] })));
       onSaved?.(result);
     },
   });

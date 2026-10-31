@@ -67,3 +67,11 @@ test('API schedule conflicts retain confirmation details', async () => {
   globalThis.fetch = async () => Response.json({ code: 'SCHEDULE_CONFLICT', message: '有冲突', details: { confirmationToken: 'token', conflicts: [{ id: 'event' }] } }, { status: 409 });
   await assert.rejects(apiRequest('/schedule-blocks', { method: 'POST', body: '{}' }), error => error.details.confirmationToken === 'token' && error.details.conflicts[0].id === 'event');
 });
+
+test('prototype category navigation and mini-calendar dates survive URL queries and invalid values stay safe', () => {
+  assert.deepEqual(resolveRoute('/tasks?type=experiment'), { page: 'tasks', taskType: 'experiment' });
+  assert.deepEqual(resolveRoute('/calendar?date=2026-11-02'), { page: 'calendar', date: '2026-11-02' });
+  assert.deepEqual(resolveRoute('/tasks?type=other'), { page: 'tasks', taskType: 'other' });
+  assert.deepEqual(resolveRoute('/tasks?type=invalid'), { page: 'tasks' });
+  assert.deepEqual(resolveRoute('/calendar?date=2026-02-30'), { page: 'calendar' });
+});

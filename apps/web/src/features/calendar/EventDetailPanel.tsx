@@ -1,3 +1,4 @@
+import { AiEntry } from '../ai/AiEntry';
 import { ReminderPanel as ReminderEditor } from '../notifications/ReminderPanel';
 import { useState } from 'react';
 import { calendarText as t } from '../../locales/zh-CN';
@@ -12,6 +13,7 @@ export function EventDetailPanel({ initial, userId, timezone, onSaved, onRefresh
   const toast = useToast();
   const remove = useResourceWrite<{ expectedVersion: number }, unknown>(userId, (body, key) => writeApi(snapshot.kind === 'event' ? `/calendar/events/${snapshot.value.id}` : `/schedule-blocks/${snapshot.value.id}`, 'DELETE', body, key), () => { toast(t.removed); onSaved(); });
   return <>
+    <AiEntry scope={{ type: snapshot.kind, id: snapshot.value.id }} placeholder="调整这项日程，或为事件设置提醒……" />
     <CalendarForm userId={userId} timezone={timezone} slot="" initial={snapshot} onSaved={onSaved} onRefresh={onRefresh} />
     {snapshot.kind === 'block' ? <Link className="calendar-task-link" href={`/tasks/${snapshot.value.taskId}`}>{t.taskLink} →</Link> : snapshot.value.preparationTasks.length > 0 && <div className="calendar-preparation"><h3>{t.preparationTasks}</h3>{snapshot.value.preparationTasks.map(task => <Link key={task.id} href={`/tasks/${task.id}`}>{task.title} →</Link>)}</div>}
     {snapshot.kind === 'event' && <ReminderEditor userId={userId} timezone={timezone} target={{ targetType: 'event', targetId: snapshot.value.id }} due={{ kind: 'instant', at: snapshot.value.startAt, timezone: snapshot.value.timezone }} />}

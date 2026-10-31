@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { CreateTaskSchema, UpdateTaskSchema } from '@research/contracts';
 import type { TaskDto, CreateTaskInput, UpdateTaskInput } from '@research/contracts';
@@ -5,18 +6,19 @@ import { tasksText as t } from '../../locales/zh-CN';
 import { useResourceWrite, useProjects, writeApi } from './task-api';
 import { useToast } from '../../components/Toast';
 import { ApiError } from '../../lib/api-client';
-interface Props { userId: string; timezone: string; task?: TaskDto; onSaved?: (task: TaskDto) => void; onRefresh?: () => void }
-export function TaskEditor({ userId, timezone, task, onSaved, onRefresh }: Props) {
+interface Props { userId: string; timezone: string; task?: TaskDto; draft?: CreateTaskInput; children?: ReactNode; submitLabel?: string; onCreate?: (input: CreateTaskInput) => Promise<TaskDto>; onCancel?: () => void; onSaved?: (task: TaskDto) => void; onRefresh?: () => void }
+export function TaskEditor({ userId, timezone, task, draft, children, submitLabel, onCreate, onCancel, onSaved, onRefresh }: Props) {
+  const seed = task ?? draft;
   const [initial] = useState(task);
-  const [fields, setFields] = useState({ title: task?.title ?? '', type: task?.type ?? 'other', status: task?.status ?? 'inbox', priority: task?.priority ?? 'normal', projectId: task?.projectId ?? '', duration: task?.durationMinutes?.toString() ?? '', note: task?.note ?? '', externalUrl: task?.externalUrl ?? '' });
-  const [kind, setKind] = useState<'none' | 'date' | 'instant'>(task?.due?.kind ?? 'none');
-  const [date, setDate] = useState(task?.due?.kind === 'date' ? task.due.date : '');
-  const [instant, setInstant] = useState(task?.due?.kind === 'instant' ? task.due.at : '');
-  const [sourceTimezone, setSourceTimezone] = useState(task?.due?.kind === 'instant' ? task.due.timezone : timezone);
+  const [fields, setFields] = useState({ title: seed?.title ?? '', type: seed?.type ?? 'other', status: task?.status ?? 'inbox', priority: seed?.priority ?? 'normal', projectId: seed?.projectId ?? '', duration: seed?.durationMinutes?.toString() ?? '', note: seed?.note ?? '', externalUrl: seed?.externalUrl ?? '' });
+  const [kind, setKind] = useState<'none' | 'date' | 'instant'>(seed?.due?.kind ?? 'none');
+  const [date, setDate] = useState(seed?.due?.kind === 'date' ? seed.due.date : '');
+  const [instant, setInstant] = useState(seed?.due?.kind === 'instant' ? seed.due.at : '');
+  const [sourceTimezone, setSourceTimezone] = useState(seed?.due?.kind === 'instant' ? seed.due.timezone : timezone);
   const [invalid, setInvalid] = useState(false);
   const projects = useProjects(userId), toast = useToast();
   const save = useResourceWrite<CreateTaskInput | UpdateTaskInput, TaskDto>(userId,
-    (body, key) => writeApi(initial ? `/tasks/${initial.id}` : '/tasks', initial ? 'PATCH' : 'POST', body, key),
+    (body, key) => !initial && onCreate ? onCreate(body as CreateTaskInput) : writeApi(initial ? `/tasks/${initial.id}` : '/tasks', initial ? 'PATCH' : 'POST', body, key),
     result => { toast(initial ? t.saved : t.created); onSaved?.(result); });
   function submit() {
     const base = { title: fields.title, type: fields.type, priority: fields.priority, projectId: fields.projectId || null, durationMinutes: fields.duration === '' ? null : Number(fields.duration), note: fields.note, externalUrl: fields.externalUrl || null, due: kind === 'date' ? { kind: 'date', date } : kind === 'instant' ? { kind: 'instant', at: instant, timezone: sourceTimezone } : null };
@@ -42,9 +44,10 @@ export function TaskEditor({ userId, timezone, task, onSaved, onRefresh }: Props
       {projects.isError && <p className="error" role="alert">{t.projectUnavailable} <button type="button" onClick={() => void projects.refetch()}>{t.retry}</button></p>}
       <label>{t.externalUrl}<input type="url" value={fields.externalUrl} onChange={event => input('externalUrl', event.target.value)} placeholder="https://" /></label>
       <label>{t.note}<textarea aria-label={t.note} rows={4} maxLength={10000} value={fields.note} onChange={event => input('note', event.target.value)} /></label>
+      {children}
     </fieldset>
     {invalid && <p className="error" role="alert">{t.invalidInput}</p>}
     {save.isError && <p className="error" role="alert">{save.error.message} {save.error instanceof ApiError && save.error.status === 409 && onRefresh && <button type="button" onClick={onRefresh}>{t.refresh}</button>}</p>}
-    <div className="task-form-footer"><span className="help">{initial ? `${t.version} ${initial.version}` : ''}</span><button className="primary" disabled={save.isPending}>{save.isPending ? t.saving : initial ? t.save : t.create}</button></div>
+    <div className="task-form-footer"><span className="help">{initial ? `${t.version} ${initial.version}` : ''}</span><div>{onCancel && <button type="button" disabled={save.isPending} onClick={onCancel}>取消</button>}<button className="primary" disabled={save.isPending}>{save.isPending ? t.saving : initial ? t.save : submitLabel ?? t.create}</button></div></div>
   </form>;
 }

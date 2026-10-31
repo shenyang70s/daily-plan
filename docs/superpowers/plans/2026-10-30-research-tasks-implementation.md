@@ -92,8 +92,8 @@ tests/e2e/                # 登录后的关键用户闭环
 - Task 5：任务与课题 CRUD、Today/Inbox/Tasks、详情编辑、筛选与游标分页、完成/重新打开/归档、软删除确认和 24 小时恢复已实现。写入在短事务中校验所有权、版本和幂等键；课题删除保留任务并递增受影响任务版本。Today 采用用户时区，包含未排程但今天到期的任务；改期限不创建或移动工作块。共享包、API 与 Web 构建通过；任务 HTTP 集成和既有认证/页面回退检查通过，Web 的 5 项检查通过。隔离 SQLite 与真实浏览器验证了完整任务/课题流程、刷新恢复、筛选、409 保留输入、删除撤销、响应丢失后幂等重试、账户隔离与四种窗口尺寸。未使用模拟业务数据替代正式实现。
 - Task 6：日/周/月日历、日期/精确期限读模型、固定事件及关联准备任务、已有任务工作块、新任务与工作块原子创建、编辑/取消和详情深链已实现。写入事务内检查冲突，签名确认凭据绑定候选时间、当前用户和冲突版本；旧确认拒绝且无部分写入。工作块与期限分别保存，Task reschedule 已支持 deadline/blocks/both。Temporal 0.5.1 已锁定，日历按需加载。共享包/API/Web 构建、地区时区 2 项、原领域 5 项、Web 7 项与日历/任务/认证/页面路由 4 项定向检查通过。真实浏览器验证创建、准备任务原子性、相接不冲突、变化后的冲突重新确认、日周月、深链刷新、工作块编辑/取消不改期限、切换时区、夏令时拒绝及明确偏移、跨用户隔离和四种尺寸；截图检查后修复已占时段新增入口与桌面周日列裁切。
 - Task 7：投稿与独立节点 CRUD、阶段更新、归档/恢复、来源与核实信息、待定/纯日期/精确时刻、服务器标准化的节点修改预览和确认已实现。归档保留节点，阶段更新不改期限，节点写入递增父记录版本；时区使用 Temporal，保留 AoE/PT 来源与秒精度。共享领域规则负责下一节点、倒计时与统一格式化，投稿列表/详情和日历共用，通知待 Task 8 使用。日历纳入投稿节点，点击跳转投稿详情。共享包/API/Web 构建通过，投稿 HTTP 与日历/认证回归、节点领域检查共 5 项通过，Web 7 项检查通过。隔离 SQLite 与真实浏览器验证完整投稿/节点流程、未确认不写入、取消与确认、版本冲突保留输入、阶段与期限分离、上海/洛杉矶同一瞬间、日历跳转、AoE/PT/夏令时、已截止、四种尺寸、归档恢复、节点删除、筛选与账户隔离；截图已检查。Staging 待验收。
-- Task 8：应用内提醒闭环已实现：持久化 Outbox、进程内调度、租约恢复、去重、失败重试、静音延后、目标状态复核与改期重算；三个目标入口、通知已读/稍后提醒、SSE 和 GET 回补已接入。Web Push 和 Staging 验收待完成。
-- Task 9–10、12–14：未开始；真实 AI、提案和后续管理能力仍待实现。Task 11 的顶会新建选择已部分实现，已有投稿更新比较待完成。
+- Task 8：应用内提醒闭环已实现：持久化 Outbox、进程内调度、租约恢复、去重、失败重试、静音延后、目标状态复核与改期重算；三个目标入口、通知已读/稍后提醒、SSE 和 GET 回补已接入。Web Push 的本地实现与验证已完成，真实供应商到设备投递和 Staging 验收待完成。
+- Task 9：DeepSeek 意图解析、白名单只读查询、追问、非执行任务草案、进度与取消已本地实现；真实 API 单次冒烟通过。Task 10 的统一方案确认、批量原子执行、审计与多轮修改已按 AI native 后续设计实现；Task 12–14 后续管理能力仍待实现。Task 11 的顶会新建选择已部分实现，已有投稿更新比较待完成。
 
 ## 阶段与验收里程碑
 
@@ -190,9 +190,11 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 8：持久化提醒、通知中心与进程内调度
 
-**本轮实现范围：** 先交付应用内提醒闭环，Web Push 保持后续项。沿用现有 service 内同步事务约定，不创建空壳 repository/outbox 模块。契约保存在 `packages/contracts/src/index.ts`；新增 `005_reminder_delivery.sql`、`reminder-target.ts`、`reminders.module.ts`、调度/投递实现和通知前端。绝对时刻不随目标改期；待发相对提醒跟随目标期限；已发送提醒不自动重放。`quiet` 现有布尔偏好解释为用户时区 22:00–08:00，`notify=false` 暂停派发并保留待发送项。日期型期限要求用户填写时刻和时区，不猜测午夜。
+**实现范围：** 应用内提醒闭环及可选 Web Push 均已本地实现，真实设备/供应商投递和 Staging 待验收。沿用现有 service 内同步事务约定，不创建空壳 repository/outbox 模块。契约保存在 `packages/contracts/src/index.ts`；新增 `005_reminder_delivery.sql`、`reminder-target.ts`、`reminders.module.ts`、调度/投递实现和通知前端。绝对时刻不随目标改期；待发相对提醒跟随目标期限；已发送提醒不自动重放。`quiet` 现有布尔偏好解释为用户时区 22:00–08:00，`notify=false` 暂停派发并保留待发送项。日期型期限要求用户填写时刻和时区，不猜测午夜。
 
 定向验证：`node --test apps/api/test/integration/reminder-delivery.test.mjs apps/api/test/integration/reminder-http.test.mjs` 五项通过，覆盖去重、重算、跳过完成目标、静音、暂停与恢复、SQLite 重开后租约恢复、有限重试、过期任务拒绝投递、鉴权/CSRF/所有权/版本和事件/节点入口。通知正文复用领域格式化，保留用户本地和节点来源时区。真实 Chromium 验证提醒增改取消、关闭浏览器后派发、SSE、已读、稍后提醒、目标跳转、三个入口及断线 GET 回补；四种尺寸无横向溢出，截图已检查。
+
+2026-10-31 补充：新增 `006_web_push.sql`、PushService/Controller、独立 PushDelivery 队列、推送设置、静态 `push-sw.js` 和 `push:keys` 命令。固定 HTTPS 推送服务地址白名单，显式点击才请求权限/订阅，服务端 VAPID 私钥不进入响应。订阅按用户和会话绑定，订阅幂等也以会话为范围；退出和会话过期停止发送，重新登录需主动开启。系统通知显示通用文案，消息 tag/topic 稳定，服务商接受不记已读。失败重试与租约恢复保留应用内历史。后端/回归 20 项、Web 9 项通过；真实 Chromium 使用替代的 PushManager 验证入口与 API 绑定，并向实际 Service Worker 本地注入推送验证可见通知和 tag 合并。未将本地注入声称为真实供应商/设备投递。四种尺寸无溢出，截图已检查。
 
 **Files:** 创建 `apps/api/src/modules/reminders/{reminders.controller,notifications.controller,reminders.service}.ts`、`packages/persistence/src/{reminder,outbox,notification}.repository.ts`、`apps/api/src/background/{scheduler,outbox,delivery,push}.ts`、`apps/web/src/features/notifications/{NotificationCenter,ReminderEditor}.tsx`；测试 `apps/api/test/integration/reminder-delivery.spec.ts`。
 
@@ -200,30 +202,36 @@ tests/e2e/                # 登录后的关键用户闭环
 
 - [x] 用可注入 Clock 验证到期触发、用户静音、已完成/取消目标跳过、同一 job 重复执行不新增通知，以及领取后崩溃仍可恢复；先运行用例确认失败。
 - [x] 实现与 NestJS 生命周期绑定的单个 Scheduler、SQLite Outbox、应用内通知、已读/稍后提醒与 SSE；轮询完成后再启动下一轮，避免重叠扫描。定时器只负责唤醒，执行状态持久化，不使用内存队列作为唯一记录。断开 SSE 后以 GET 回补，不能只依赖长连接。发送前再次检查目标状态与版本，重算日期变更后的待触发提醒。纯日期截止仅在用户明确设置提醒时刻和时区后计算触发时间，不自动推导午夜提醒。
-- [ ] 为目标浏览器提供可选 Web Push：用户显式授权后绑定 endpoint，失效 endpoint 停用；未授权仍能查看应用内通知。不把外部 Push 供应商的投递等同用户已阅读。应用内通知由唯一键保证去重；外部 Push 采用至少一次重试，使用稳定消息标识辅助去重，不承诺远端严格只投递一次。
+- [x] 为目标浏览器提供可选 Web Push：用户显式授权后绑定 endpoint，失效 endpoint 停用；未授权仍能查看应用内通知。不把外部 Push 供应商的投递等同用户已阅读。应用内通知由唯一键保证去重；外部 Push 采用至少一次重试，使用稳定消息标识辅助去重，不承诺远端严格只投递一次。
 - [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/reminder-delivery.spec.ts`；Staging 关闭浏览器并重启应用服务，核对到期提醒仍被处理且通知不重复。
 - [ ] 提交：`feat: deliver durable reminders and notifications`。
 
 ## Task 9：真实 AI 解析与只读查询
 
+2026-10-31：按用户指定接入 DeepSeek，从 `DEEPSEEK_API_KEY` 读取密钥，默认 `deepseek-flash`。使用正式 JSON Output 和服务端 Zod 校验，不依赖 Beta strict 功能，也不把 JSON 模式等同业务字段验证。固定 HTTPS 端点，输出/输入/时间/配额有上限。最小上下文仅输入、时刻和时区，不发送任何业务记录；模型给出查询意图，服务端通过现有 owner-scoped 服务读取结果，草案不执行。新增 `007_ai_runs.sql`（003 已用于密码凭据），运行结果提供 REST/SSE，服务重启将未完成项标为中断，不重放付费请求。任务草案先支持创建，更新/排程意图追问或转手动处理，确认写入留 Task 10。
+
+实际文件为 `modules/ai/{ai.module,ai.controller,orchestrator,provider-adapter,context-builder,tool-registry}.ts`、共享 `contracts/src/index.ts`、`features/ai/{CommandBar,AIResult}.tsx`；进度直接在 CommandBar 展示。定向检查使用 Node test runner：`node --test apps/api/test/integration/ai-{http,orchestrator}.test.mjs`。本轮 AI/认证/生产驱动共 7 项通过，Web 9 项通过；真实 DeepSeek 单次请求返回 HTTP 200，任务查询意图校验通过。固定替身与真实 Chromium 验证 Ctrl/Cmd + K、实际账户结果/跳转、跨用户隔离、模糊时间追问、草案零写入、超时保留输入、停止与断线 GET 回补、关闭 AI 和页面导航，四种尺寸及截图已检查。Staging 仍待验收。
+
 **Files:** 创建 `apps/api/src/modules/ai/{ai.controller,orchestrator,provider-adapter,context-builder,tool-registry}.ts`、`packages/contracts/src/ai.ts`、`apps/web/src/features/ai/{CommandBar,AIResult,AIProgress}.tsx`；测试 `apps/api/src/modules/ai/orchestrator.spec.ts`。
 
 **Interfaces:** `ModelProvider.interpret(input:InterpretContext):Promise<InterpretResult>`；`InterpretResult={kind:'query';result:QueryResult}|{kind:'clarification';question:string}|{kind:'proposal';proposal:ProposalDraft}`。接入一个支持结构化输出的真实提供商；测试使用固定替身。只读工具为查询当前用户任务、日历与投稿，写工具仅产生动作草案。
 
-- [ ] 验证结构化返回不合法时拒绝、缺少关键日期时追问、查询只读、提供商超时保留输入、外部链接内容不自动读取、其他用户内容不进入上下文；先运行失败用例。
-- [ ] 实现 `/ai/interpret`、最小上下文、白名单、Token/超时上限、SSE 运行进度、Cmd/Ctrl + K；不将模型 Key 发送给 Web。模糊的“晚上”等表达不能静默补成精确时刻。
-- [ ] 运行 `pnpm --filter @research/api test --runInBand src/modules/ai/orchestrator.spec.ts`；真实提供商只做一次人工冒烟，核对查询成功、普通 CRUD 不依赖模型可用性。
+- [x] 验证结构化返回不合法时拒绝、缺少关键日期时追问、查询只读、提供商超时保留输入、外部链接内容不自动读取、其他用户内容不进入上下文；先运行失败用例。
+- [x] 实现 `/ai/interpret`、最小上下文、白名单、Token/超时上限、SSE 运行进度、Cmd/Ctrl + K；不将模型 Key 发送给 Web。模糊的“晚上”等表达不能静默补成精确时刻。
+- [x] 运行 `node --test apps/api/test/integration/ai-http.test.mjs apps/api/test/integration/ai-orchestrator.test.mjs`；真实 DeepSeek 单次冒烟通过，普通 CRUD 在模型未配置时可用。
 - [ ] 提交：`feat: add model-backed interpretation and read tools`。
 
 ## Task 10：提案确认、幂等执行和审计
+
+2026-10-31：此任务由 [AI native 工作流计划](2026-10-31-ai-native-workflows.md) 中的统一执行方案落地，实际使用 `plan-executor.ts`、`PlanPreview.tsx` 和迁移 `009_ai_plans.sql`。已覆盖多轮替代、上下文隔离、白名单批量操作、事务回滚、幂等、版本/时段失效和执行审计；未提交或发布。下列文件名为原计划参考。
 
 **Files:** 创建 `apps/api/src/modules/ai/{proposal.service,proposal-executor,proposal.controller}.ts`、`packages/persistence/src/{proposal,audit}.repository.ts`、`infra/migrations/003_ai_proposals_audit.sql`、`apps/web/src/features/ai/AIActionPreview.tsx`；测试 `apps/api/test/integration/ai-confirmation.spec.ts`。
 
 **Interfaces:** `Proposal={id:string;userId:string;actions:Action[];resourceVersions:Record<string,number>;expiresAt:string;status:ProposalStatus}`。初始白名单仅 `task.create`、`task.update`、`task.reschedule`；创建提案本身不写业务表。`confirm(ctx,proposalId,expectedVersion,key):Promise<ExecutionResult>` 对接第 8.6 章路由。
 
-- [ ] 编写失败用例：未确认零业务写入；同提案并发确认只执行一次；过期、越权、旧版本提案拒绝；用户取消零写入；一项动作校验失败则整组回滚。
-- [ ] 实现结构化预览、编辑后重新校验、确认/拒绝和事务执行；审计记录动作摘要与来源，不保存模型隐式推理。结果返回真实资源 ID 后再更新界面；禁止模型直接执行 SQL/代码/任意 URL。
-- [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/ai-confirmation.spec.ts`；人工走通“自然语言 → 预览 → 修改字段 → 确认 → 刷新仍存在”，并核对双击不重复创建。
+- [x] 编写失败用例：未确认零业务写入；同提案并发确认只执行一次；过期、越权、旧版本提案拒绝；用户取消零写入；一项动作校验失败则整组回滚。
+- [x] 实现结构化预览、编辑后重新校验、确认/拒绝和事务执行；审计记录动作摘要与来源，不保存模型隐式推理。结果返回真实资源 ID 后再更新界面；禁止模型直接执行 SQL/代码/任意 URL。
+- [x] 按后续计划运行实际定向测试和隔离浏览器；人工走通“自然语言 → 预览 → 修改字段 → 确认 → 刷新仍存在”，并核对双击不重复创建。
 - [ ] 提交：`feat: execute confirmed AI proposals atomically`。
 
 ## Task 11：CCF-Deadlines 快照与手动导入

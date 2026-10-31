@@ -1,3 +1,4 @@
+import { Icon } from '../../components/Icon';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TaskDto } from '@research/contracts';
@@ -6,7 +7,7 @@ import { useToast } from '../../components/Toast';
 import { tasksText as t } from '../../locales/zh-CN';
 import { ApiError } from '../../lib/api-client';
 import { useResourceWrite, writeApi } from './task-api';
-export function TaskActions({ task, userId, compact = false, onDeleted, onChanged, onRefresh }: { task: TaskDto; userId: string; compact?: boolean; onDeleted?: () => void; onChanged?: () => void; onRefresh?: () => void }) {
+export function TaskActions({ task, userId, compact = false, onDeleted, onChanged, onRefresh, checkbox = false }: { checkbox?: boolean; task: TaskDto; userId: string; compact?: boolean; onDeleted?: () => void; onChanged?: () => void; onRefresh?: () => void }) {
   const [confirm, setConfirm] = useState(false);
   const toast = useToast(), client = useQueryClient();
   const action = useResourceWrite<{ action: 'complete' | 'reopen' | 'archive' | 'delete'; expectedVersion: number }, TaskDto>(userId,
@@ -26,7 +27,7 @@ export function TaskActions({ task, userId, compact = false, onDeleted, onChange
   const terminal = task.status === 'done' || task.status === 'canceled';
   const error = action.isError && <p className="error" role="alert">{action.error.message} {action.error instanceof ApiError && action.error.status === 409 && onRefresh && <button type="button" onClick={onRefresh}>{t.refresh}</button>}</p>;
   return <div className={`task-actions${compact ? ' compact' : ''}`}>
-    <div className="task-action-buttons"><button type="button" disabled={action.isPending} aria-label={`${terminal ? t.reopen : t.complete}：${task.title}`} onClick={() => run(terminal ? 'reopen' : 'complete')}>{terminal ? t.reopen : t.complete}</button>
+    <div className="task-action-buttons"><button type="button" className={checkbox ? `task-complete-check${task.status === 'done' ? ' checked' : ''}` : undefined} role={checkbox ? 'checkbox' : undefined} aria-checked={checkbox ? task.status === 'done' : undefined} disabled={action.isPending} aria-label={`${terminal ? t.reopen : t.complete}：${task.title}`} onClick={() => run(terminal ? 'reopen' : 'complete')}>{checkbox ? task.status === 'done' ? <Icon name="check" /> : null : terminal ? t.reopen : t.complete}</button>
       {!compact && <>{terminal && !task.archivedAt && <button type="button" disabled={action.isPending} onClick={() => run('archive')}>{t.archive}</button>}<button type="button" className="danger" disabled={action.isPending} onClick={() => { action.reset(); setConfirm(true); }}>{t.remove}</button></>}
     </div>
     {!confirm && error}

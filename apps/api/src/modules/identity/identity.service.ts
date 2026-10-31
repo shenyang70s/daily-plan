@@ -1,3 +1,4 @@
+import { disablePushSession } from '../push/push.service.js';
 import {createHash,createHmac,randomBytes,randomUUID} from 'node:crypto';
 import type {Database} from '@research/persistence';
 import {AppError} from '../../common/app-error.js';
@@ -52,7 +53,7 @@ export class IdentityService {
     if(!csrfToken||digest(csrfToken)!==session?.csrf_hash)throw new AppError(403,'INVALID_CSRF','操作校验失败，请刷新后重试');
     return ctx;
   }
-  logout(token:string):void{const ctx=this.authenticate(token);this.db.withTransaction(tx=>tx.run('UPDATE sessions SET revoked_at=? WHERE id=? AND user_id=?',this.now(),ctx.sessionId,ctx.userId))}
+  logout(token:string):void{const ctx=this.authenticate(token);this.db.withTransaction(tx=>{tx.run('UPDATE sessions SET revoked_at=? WHERE id=? AND user_id=?',this.now(),ctx.sessionId,ctx.userId);disablePushSession(tx,ctx.sessionId,this.now())})}
   getMe(token:string){const ctx=this.authenticate(token),user=this.db.get('SELECT username FROM local_credentials WHERE user_id=?',ctx.userId);return{user:{id:ctx.userId,username:String(user?.username||'')},csrfToken:ctx.csrfToken,preferences:this.getPreferences(ctx)}}
   getPreferences(ctx:SessionContext):Preferences{const row=this.db.get('SELECT preferences_json FROM user_preferences WHERE user_id=?',ctx.userId);return{...defaults,...(row?JSON.parse(String(row.preferences_json)): {})}}
   updatePreferences(ctx:SessionContext,changes:Partial<Preferences>):Preferences{

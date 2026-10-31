@@ -1,0 +1,31 @@
+import 'reflect-metadata';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createECDH, randomBytes, randomUUID } from 'node:crypto';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import BetterSqlite3 from 'better-sqlite3';
+import { createDatabase } from '@research/persistence';
+import { IdentityService } from '../../dist/modules/identity/identity.service.js';
+import { PushService } from '../../dist/modules/push/push.service.js';
+import { TasksService } from '../../dist/modules/tasks/tasks.service.js';
+import { RemindersService } from '../../dist/modules/reminders/reminders.service.js';
+import { ReminderDelivery } from '../../dist/background/delivery.js';
+const ec=createECDH('prime256v1');ec.generateKeys();const config={subject:'mailto:operator@example.test',publicKey:ec.getPublicKey().toString('base64url'),privateKey:ec.getPrivateKey().toString('base64url')};
+const subscription={endpoint:'https://fcm.googleapis.com/fcm/send/test-subscription',keys:{p256dh:config.publicKey,auth:randomBytes(16).toString('base64url')}};
+async function setup(t){const dir=mkdtempSync(join(tmpdir(),'research-push-')),path=join(dir,'db.sqlite'),migrationsPath=new URL('../../../../infra/migrations/',import.meta.url).pathname;let db=createDatabase(new BetterSqlite3(path),{migrationsPath}),now=Date.parse('2026-11-01T02:00:00Z');t.after(()=>{db.close();rmSync(dir,{recursive:true,force:true});});const clock=()=>now,identity=new IdentityService(db,clock);await identity.createAccount('push-owner','push-test-passphrase');const login=await identity.login('push-owner','push-test-passphrase','test'),ctx=identity.authenticate(login.token);identity.updatePreferences(ctx,{quiet:false});const push=new PushService(db,config,clock);push.subscribe(ctx,subscription,randomUUID());const task=new TasksService(db).create(ctx,{title:'Private research title',type:'other',priority:'normal',due:{kind:'instant',at:'2026-11-01T04:00:00Z',timezone:'UTC'},durationMinutes:null,projectId:null,note:'',externalUrl:null},randomUUID());const reminders=new RemindersService(db,clock),reminder=reminders.create(ctx,{targetType:'task',targetId:task.id,mode:'absolute',at:'2026-11-01T02:30:00Z',timezone:'UTC'},randomUUID());now=Date.parse('2026-11-01T02:30:00Z');await new ReminderDelivery(db,clock).tick();return {get db(){return db},clock,config,ctx,identity,push,task,reminder,reminders,setNow:v=>{now=Date.parse(v)},reopen(){db.close();db=createDatabase(new BetterSqlite3(path),{migrationsPath});return db}};}
+test('in-app delivery atomically queues one external job; sender runs outside transactions with a stable generic payload',async t=>{
+ const s=await setup(t);assert.equal(s.db.get('SELECT count(*) n FROM push_deliveries').n,1);assert.equal(s.db.get('SELECT count(*) n FROM notifications').n,1);
+ const {PushDelivery}=await import('../../dist/background/push.js');let calls=0;const sender=async(sub,payload,options)=>{calls++;assert.equal(sub.endpoint,subscription.endpoint);s.db.withTransaction(tx=>tx.get('SELECT 1'));assert.ok(!payload.includes(s.task.title));const parsed=JSON.parse(payload);assert.equal(parsed.href,`/tasks/${s.task.id}`);assert.ok(parsed.tag);assert.ok(options.topic);assert.equal(options.timeout,10000);};const worker=new PushDelivery(s.db,config,sender,s.clock);await worker.tick();await worker.tick();assert.equal(calls,1);assert.equal(s.db.get('SELECT status FROM push_deliveries').status,'sent');assert.equal(s.db.get('SELECT read_at FROM notifications').read_at,null);
+});
+test('temporary failures persist across restart, preserve in-app history, and stop after five attempts',async t=>{
+ const s=await setup(t),{PushDelivery}=await import('../../dist/background/push.js');let calls=0;const sender=async()=>{calls++;throw Object.assign(new Error('secret endpoint must not be stored'),{statusCode:503});};await new PushDelivery(s.db,config,sender,s.clock).tick();assert.equal(s.db.get('SELECT count(*) n FROM notifications').n,1);s.reopen();for(let i=0;i<4;i++){s.setNow(`2026-11-01T0${3+i}:00:00Z`);await new PushDelivery(s.db,config,sender,s.clock).tick();}const row=s.db.get('SELECT * FROM push_deliveries');assert.equal(calls,5);assert.equal(row.status,'failed');assert.equal(row.last_error_code,'PUSH_TEMPORARY_FAILURE');assert.ok(!JSON.stringify(row).includes('secret endpoint'));
+});
+test('invalid endpoints deactivate subscriptions; lease recovery retries the same stable tag',async t=>{
+ const s=await setup(t),{PushDelivery}=await import('../../dist/background/push.js');let tags=[];const worker=new PushDelivery(s.db,config,async(_,payload)=>{tags.push(JSON.parse(payload).tag);throw Object.assign(new Error('gone'),{statusCode:410});},s.clock);const job=worker.claimOne();assert.ok(job);s.reopen();s.setNow('2026-11-01T02:32:00Z');await new PushDelivery(s.db,config,async(_,payload)=>{tags.push(JSON.parse(payload).tag);throw Object.assign(new Error('gone'),{statusCode:410});},s.clock).tick();assert.equal(s.db.get('SELECT active FROM push_subscriptions').active,0);assert.equal(s.db.get('SELECT status FROM push_deliveries').status,'canceled');assert.equal(s.db.get('SELECT attempts FROM push_deliveries').attempts,2);assert.equal(s.db.get('SELECT read_at FROM notifications').read_at,null);
+});
+test('logout, session expiry, target completion, disabled preferences and quiet hours are checked again before push',async t=>{
+ const {PushDelivery}=await import('../../dist/background/push.js');
+ for(const kind of ['logout','expired','done','notify','quiet']){await t.test(kind,async sub=>{const s=await setup(sub);if(kind==='logout')s.db.withTransaction(tx=>tx.run('UPDATE sessions SET revoked_at=? WHERE id=?',s.clock(),s.ctx.sessionId));if(kind==='expired')s.setNow('2026-11-02T02:00:00Z');if(kind==='done')s.db.withTransaction(tx=>tx.run("UPDATE tasks SET status='done',version=version+1 WHERE id=?",s.task.id));if(kind==='notify')s.identity.updatePreferences(s.ctx,{notify:false});if(kind==='quiet'){s.identity.updatePreferences(s.ctx,{quiet:true});s.setNow('2026-11-01T15:00:00Z');}let calls=0;const worker=new PushDelivery(s.db,config,async()=>{calls++;},s.clock);await worker.tick();assert.equal(calls,0);assert.equal(s.db.get('SELECT count(*) n FROM notifications').n,1);});}
+});

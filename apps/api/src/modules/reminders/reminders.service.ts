@@ -10,7 +10,7 @@ export function queueReminder(tx: Transaction, row: Record<string, unknown>, now
   const deliveryKey = `${row.id}:${row.scheduled_for}:${row.version}:in_app`;
   tx.run("INSERT OR IGNORE INTO outbox_events(id,user_id,reminder_id,scheduled_for,delivery_key,payload_json,status,next_attempt_at,created_at,updated_at) VALUES(?,?,?,?,?,?,'pending',?,?,?)", randomUUID(), String(row.user_id), String(row.id), Number(row.scheduled_for), deliveryKey, JSON.stringify({ version: row.version }), Number(row.scheduled_for), now, now);
 }
-export function cancelJobs(tx: Transaction, id: string, now: number): void { tx.run("UPDATE outbox_events SET status='canceled',lease_until=NULL,updated_at=? WHERE reminder_id=? AND status IN ('pending','running','failed')", now, id); }
+export function cancelJobs(tx: Transaction, id: string, now: number): void { tx.run("UPDATE outbox_events SET status='canceled',lease_until=NULL,updated_at=? WHERE reminder_id=? AND status IN ('pending','running','failed')", now, id); tx.run("UPDATE push_deliveries SET status='canceled',lease_until=NULL,updated_at=? WHERE notification_id IN (SELECT id FROM notifications WHERE reminder_id=?) AND status IN ('pending','running','failed')", now, id); }
 function notificationDto(row: Record<string, unknown>): NotificationDto { return { id: String(row.id), title: String(row.title), body: String(row.body), href: String(row.resource_id), createdAt: iso(row.created_at)!, readAt: iso(row.read_at), snoozedUntil: iso(row.snoozed_until), reminderId: row.reminder_id == null ? null : String(row.reminder_id) }; }
 export class RemindersService {
   constructor(private readonly db: Database, private readonly now: () => number = Date.now) {}

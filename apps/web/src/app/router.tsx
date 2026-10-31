@@ -8,13 +8,13 @@ function subscribe(listener: () => void) {
 }
 
 export function navigate(path: string, replace = false): void {
-  if (path === window.location.pathname) return;
+  if (path === window.location.pathname + window.location.search) return;
   window.history[replace ? 'replaceState' : 'pushState'](null, '', path);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 export function useRoute() {
-  const pathname = useSyncExternalStore(subscribe, () => window.location.pathname);
+  const pathname = useSyncExternalStore(subscribe, () => window.location.pathname + window.location.search);
   useEffect(() => {
     if (pathname === '/') navigate('/today', true);
   }, [pathname]);

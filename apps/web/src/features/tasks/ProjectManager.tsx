@@ -1,3 +1,4 @@
+import { AiEntry } from '../ai/AiEntry';
 import { useState } from 'react';
 import type { ProjectDto } from '@research/contracts';
 import { Dialog } from '../../components/Dialog';
@@ -15,6 +16,7 @@ export function ProjectManager({ userId, onClose }: { userId: string; onClose: (
     return writeApi(path, input.action === 'create' ? 'POST' : input.action === 'rename' ? 'PATCH' : 'DELETE', body, key);
   }, result => { toast('deleted' in result ? t.projectRemoved : editing ? t.projectSaved : t.projectCreated); setName(''); setEditing(null); setRemoving(null); });
   return <Dialog title={t.projectManage} onClose={() => { if (!change.isPending) onClose(); }}>
+    <AiEntry scope={editing ? { type: 'project', id: editing.id } : undefined} placeholder="描述研究课题，让 AI 帮你建立课题和拆解任务……" />
     <form className="project-form" onSubmit={event => { event.preventDefault(); if (name.trim() && !change.isPending) change.mutate(editing ? { action: 'rename', id: editing.id, expectedVersion: editing.version, name: name.trim() } : { action: 'create', name: name.trim() }); }}>
       <label htmlFor="project-name">{t.projectName}</label><div><input id="project-name" data-autofocus required maxLength={100} value={name} disabled={change.isPending} onChange={event => setName(event.target.value)} /><button className="primary" disabled={!name.trim() || change.isPending}>{editing ? t.projectSave : t.projectCreate}</button></div>
       {editing && <button type="button" disabled={change.isPending} onClick={() => { setEditing(null); setName(''); }}>{t.cancel}</button>}

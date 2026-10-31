@@ -10,4 +10,6 @@ import './styles/tasks.css';
 import './styles/calendar.css';
 import './styles/submissions.css';
 import './styles/notifications.css';
+import './styles/ai.css';
+import './styles/prototype.css';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><App /></QueryClientProvider></React.StrictMode>);

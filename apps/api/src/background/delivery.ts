@@ -1,6 +1,8 @@
+import { queuePush } from './push.js';
+import { deliveryPreferences } from './delivery-preferences.js';
 import { randomUUID } from 'node:crypto';
 import type { Database, Transaction } from '@research/persistence';
-import { localDateTimeAt, calendarDateAt, shiftCalendarDate, normalizeDeadline, formatDeadline } from '@research/domain';
+import { formatDeadline } from '@research/domain';
 import { reminderTarget, reminderTime, targetFromRow } from '../modules/reminders/reminder-target.js';
 import { queueReminder, cancelJobs } from '../modules/reminders/reminders.service.js';
 export interface ReminderJob { id: string; reminderId: string; userId: string; version: number; deliveryKey: string; attempts: number }
@@ -47,16 +49,7 @@ export class ReminderDelivery {
         if (!row || row.status !== 'pending' || Number(row.version) !== job.version || Number(row.scheduled_for) > now) {
           tx.run("UPDATE outbox_events SET status='canceled',lease_until=NULL,updated_at=? WHERE id=?", now, job.id); return 'skipped';
         }
-        const preferences = tx.get('SELECT timezone,preferences_json FROM user_preferences WHERE user_id=?', job.userId), prefs = JSON.parse(String(preferences?.preferences_json ?? '{}'));
-        const timezone = String(preferences?.timezone ?? 'Asia/Shanghai');
-        let deferUntil: number | null = prefs.notify === false ? now + 60000 : null;
-        if (prefs.quiet !== false) {
-          const local = localDateTimeAt(new Date(now).toISOString(), timezone), hour = Number(local.slice(11, 13));
-          if (hour >= 22 || hour < 8) {
-            const date = calendarDateAt(new Date(now).toISOString(), timezone), nextDate = hour >= 22 ? shiftCalendarDate(date, 1) : date;
-            deferUntil = Math.max(deferUntil ?? 0, Date.parse(normalizeDeadline({ localDateTime: `${nextDate}T08:00`, timezone }).at));
-          }
-        }
+        const { timezone, deferUntil } = deliveryPreferences(tx, job.userId, now);
         if (deferUntil !== null) { tx.run("UPDATE outbox_events SET status='pending',lease_until=NULL,next_attempt_at=?,attempts=MAX(0,attempts-1),updated_at=? WHERE id=?", deferUntil, now, job.id); return 'skipped'; }
         const target = reminderTarget(tx, job.userId, targetFromRow(row));
         const kinds: Record<string, string> = { abstract: '摘要', full_paper: '全文', rebuttal: '答辩', notification: '结果通知', camera_ready: '最终稿', other: '其他节点' };
@@ -64,6 +57,8 @@ export class ReminderDelivery {
         const at = target.due ? formatDeadline(target.due, timezone) + (target.due.kind === 'date' ? ' · 日期型期限' : '') : '尚未设置期限';
         const source = target.due?.kind === 'instant' && target.sourceTimezone ? `。来源时间：${formatDeadline(target.due, target.sourceTimezone)}` : '';
         tx.run('INSERT OR IGNORE INTO notifications(id,user_id,delivery_key,title,body,resource_type,resource_id,created_at,reminder_id) VALUES(?,?,?,?,?,?,?,?,?)', randomUUID(), job.userId, job.deliveryKey, title, `提醒时间已到。目标时间：${at}${source}`, targetFromRow(row).targetType, target.href, now, job.reminderId);
+        const notification = tx.get('SELECT id FROM notifications WHERE delivery_key=? AND user_id=?', job.deliveryKey, job.userId)!;
+        queuePush(tx, String(notification.id), job.userId, job.version, now);
         tx.run("UPDATE reminders SET status='sent',updated_at=? WHERE id=? AND user_id=? AND version=?", now, job.reminderId, job.userId, job.version);
         tx.run("UPDATE outbox_events SET status='sent',lease_until=NULL,last_error_code=NULL,updated_at=? WHERE id=?", now, job.id);
         return 'sent';

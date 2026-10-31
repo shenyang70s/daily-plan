@@ -137,3 +137,58 @@ export interface NotificationDto { id: string; title: string; body: string; href
 export interface NotificationPage extends CursorPage<NotificationDto> { unreadCount: number }
 
 export const EmptyInputSchema = z.object({}).strict();
+
+export const PushSubscriptionSchema = z.object({ endpoint: z.string().url().max(4096), expirationTime: z.number().nullable().optional(), keys: z.object({ p256dh: z.string().regex(/^[A-Za-z0-9_-]{87}=?$/), auth: z.string().regex(/^[A-Za-z0-9_-]{22}={0,2}$/) }).strict() }).strict();
+export const PushSubscriptionQuerySchema = z.object({ endpointHash: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
+export type PushSubscriptionInput = z.infer<typeof PushSubscriptionSchema>;
+export interface PushConfigDto { enabled: boolean; publicKey: string | null }
+export interface PushStatusDto { active: boolean; deliveryStatus: string | null; lastErrorCode: string | null }
+
+export const AiInterpretSchema = z.object({ text: z.string().trim().min(1).max(2000), requestId: z.string().uuid(), intent: z.enum(['assist', 'capture']).default('assist'), parentRunId: z.string().uuid().optional(), scope: z.object({ type: z.enum(['task','event','block','submission','project']), id: z.string().uuid() }).strict().optional() }).strict();
+export const AiDraftDeadlineSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('date'), date: localDate }).strict(),
+  z.object({ kind: z.literal('local'), localDateTime: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/), timezone: z.string().min(1).max(64) }).strict(),
+]).nullable();
+export const AiDraftSchema = CreateTaskSchema.omit({ due: true, projectId: true, externalUrl: true }).extend({ due: AiDraftDeadlineSchema, note: z.string().max(2000).default('') }).strict();
+const aiReference = z.string().uuid().or(z.string().regex(/^new:[0-9]{1,2}$/));
+const aiTask = CreateTaskSchema.extend({ projectId: aiReference.nullable().default(null) });
+export const AiActionSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('task_create'), task: aiTask, schedule: CalendarRangeSchema.optional(), autoSchedule: z.boolean().default(false), preferredDate: localDate.optional() }).strict(),
+  z.object({ kind: z.literal('task_update'), id: z.string().uuid(), changes: UpdateTaskSchema }).strict(),
+  z.object({ kind: z.literal('block_create'), input: CreateScheduleBlockSchema.omit({ conflictToken: true }) }).strict(),
+  z.object({ kind: z.literal('block_update'), id: z.string().uuid(), changes: UpdateScheduleBlockSchema.omit({ conflictToken: true }) }).strict(),
+  z.object({ kind: z.literal('event_create'), event: CreateCalendarEventSchema.omit({ conflictToken: true }) }).strict(),
+  z.object({ kind: z.literal('event_update'), id: z.string().uuid(), changes: UpdateCalendarEventSchema.omit({ conflictToken: true }) }).strict(),
+  z.object({ kind: z.literal('project_create'), project: CreateProjectSchema }).strict(),
+  z.object({ kind: z.literal('project_update'), id: z.string().uuid(), changes: UpdateProjectSchema }).strict(),
+  z.object({ kind: z.literal('submission_create'), submission: CreateSubmissionSchema, milestones: z.array(z.object({ kind: MilestoneKindSchema, due: TaskDueSchema }).strict()).max(6).default([]) }).strict(),
+  z.object({ kind: z.literal('submission_update'), id: z.string().uuid(), changes: UpdateSubmissionSchema }).strict(),
+  z.object({ kind: z.literal('reminder_create'), targetType: z.enum(['task','event','milestone']), targetId: aiReference, policy: z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('absolute'), at: calendarInstant, timezone: z.string().min(1).max(64) }).strict(),
+    z.object({ kind: z.literal('before_start'), minutes: z.number().int().min(0).max(10080) }).strict(),
+    z.object({ kind: z.literal('before_deadline'), minutes: z.number().int().min(0).max(525600), dateTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional() }).strict(),
+  ]) }).strict(),
+  z.object({ kind: z.literal('reminder_update'), id: z.string().uuid(), changes: UpdateReminderSchema }).strict(),
+  z.object({ kind: z.literal('reminder_cancel'), id: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict(),
+]);
+export const AiPlanDecisionSchema = z.object({ kind: z.literal('plan'), title: z.string().min(1).max(200), explanation: z.string().min(1).max(2000), actions: z.array(AiActionSchema).min(1).max(12), assumptions: z.array(z.string().max(300)).max(8).default([]) }).strict();
+export type AiAction = z.infer<typeof AiActionSchema>;
+export interface AiImpact { label: string; before: string[]; after: string[] }
+export interface AiExecutionDto { runId: string; executedAt: string; items: { id: string; label: string; href: string }[] }
+export interface AiPlan extends z.infer<typeof AiPlanDecisionSchema> { impacts: AiImpact[]; contextSummary: string; warnings: string[]; dependencies: { type: string; id: string; version: number }[] }
+export const AiConfirmSchema = z.object({ confirm: z.literal(true) }).strict();
+export const AiDecisionSchema = z.discriminatedUnion('kind', [
+  AiPlanDecisionSchema,
+  z.object({ kind: z.literal('query'), tool: z.literal('tasks'), params: TaskListSchema }).strict(),
+  z.object({ kind: z.literal('calendar_query'), tool: z.literal('calendar'), params: z.object({ fromDate: localDate, throughDate: localDate }).strict() }).strict(),
+  z.object({ kind: z.literal('submission_query'), tool: z.literal('submissions'), params: SubmissionListSchema }).strict(),
+  z.object({ kind: z.literal('clarification'), question: z.string().trim().min(1).max(500) }).strict(),
+  z.object({ kind: z.literal('proposal'), draft: AiDraftSchema, schedule: z.object({ localStart: z.string().min(1).max(40), localEnd: z.string().min(1).max(40), timezone: z.string().min(1).max(64) }).strict().nullable().optional(), assumptions: z.array(z.string().max(200)).max(5).default([]) }).strict(),
+]);
+export type AiDecision = z.infer<typeof AiDecisionSchema>;
+export interface AiResultItem { id: string; title: string; detail: string; href: string }
+export type AiInterpretResult = AiPlan | { kind: 'query'; resource: 'tasks' | 'calendar' | 'submissions'; items: AiResultItem[]; truncated: boolean; asOf: string }
+  | { kind: 'clarification'; question: string }
+  | { kind: 'proposal'; draft: CreateTaskInput; assumptions: string[]; schedule?: CalendarRange; executable: false };
+export interface AiRunDto { id: string; execution?: AiExecutionDto | null; superseded?: boolean; status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'; phase: 'queued' | 'interpreting' | 'querying' | 'completed' | 'failed' | 'canceled'; result: AiInterpretResult | null; error: { code: string; message: string } | null }
+export interface AiConfigDto { configured: boolean; enabled: boolean; provider: 'deepseek'; model: string }

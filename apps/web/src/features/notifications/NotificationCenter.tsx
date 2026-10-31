@@ -24,7 +24,7 @@ export function NotificationCenter({ userId, timezone, onClose }: { userId: stri
   const change = useResourceWrite<{ id: string; action: 'read' | 'snooze' }, NotificationDto>(userId, (input, key) => writeApi(`/notifications/${input.id}/${input.action}`, 'POST', input.action === 'read' ? {} : { minutes: 10 }, key));
   const format = (value: string) => new Intl.DateTimeFormat('zh-CN', { timeZone: timezone, dateStyle: 'short', timeStyle: 'medium' }).format(new Date(value));
   const items = query.data?.pages.flatMap(page => page.items) ?? [];
-  return <Dialog title={text.notifications} onClose={onClose}>
+  return <Dialog variant="drawer" title={text.notifications} onClose={onClose}>
     <div className="notification-toolbar"><span>{t.unread} {query.data?.pages[0]?.unreadCount ?? 0}</span><button type="button" onClick={() => void query.refetch()}>{t.refresh}</button></div>
     <p className="help">{t.centerHelp}</p>
     {query.isPending && <p role="status">{t.loading}</p>}{query.isError && <p className="error" role="alert">{query.error.message}</p>}

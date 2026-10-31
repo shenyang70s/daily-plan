@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { text } from '../locales/zh-CN';
 
-export function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function Dialog({ title, onClose, children, variant = 'dialog' }: { title: string; onClose: () => void; children: ReactNode; variant?: 'dialog' | 'drawer' }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   useEffect(() => {
@@ -18,7 +18,7 @@ export function Dialog({ title, onClose, children }: { title: string; onClose: (
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
     };
   }, []);
-  return <dialog ref={ref} className="dialog" aria-labelledby={titleId}
+  return <dialog ref={ref} className={`dialog${variant === 'drawer' ? ' drawer' : ''}`} aria-labelledby={titleId}
     onCancel={event => { event.preventDefault(); onClose(); }}
     onClick={event => {
       if (event.target !== event.currentTarget) return;
