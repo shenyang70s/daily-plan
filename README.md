@@ -233,4 +233,4 @@ E2E 固定使用临时 SQLite 文件、隔离测试账户和确定性模型/会�
 
 如需使用已有 Chromium，可设置 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 为可执行文件绝对路径；CI 安装 Playwright 对应的浏览器。恢复测试还覆盖在线 WAL、篡改拒绝、旧库迁移前缀升级、外键错误和 CLI 不覆盖既有文件。
 
-CI 按代码路径触发，界面变更运行类型/构建/Web 测试和核心 E2E，后端/共享包/数据库变更追加领域与集成验证。镜像与部署资料见 [运行手册](infra/deploy/runbook.md)、[Staging 验收](infra/deploy/staging.md)、[生产发布条件](infra/deploy/production.md)。镜像按源码提交标记，数据库挂载本地持久化卷；本地测试通过不代表 Docker 或真实远端服务验收完成。当前无实际 Staging 地址，未执行生产发布。
+CI 按代码路径触发，界面变更运行类型/构建/Web 测试和核心 E2E，后端/共享包/数据库变更追加领域与集成验证。默认交付为[个人ECS单机直接部署](infra/deploy/ecs/README.md)：systemd开机启动/异常重启、HTTPS访问、持久化SQLite、每日在线备份及停服恢复。Docker镜像构建仅在手动工作流选择 `verify_container` 时执行；[容器运行手册](infra/deploy/runbook.md)和[Staging说明](infra/deploy/staging.md)作为可选资料。设备推送与真实网络故障演练也按需开展，不阻塞个人版；基本AI失败保护仍需通过本地验证。个人版已部署至 [plan.datafab.cn](https://plan.datafab.cn)，沿用现有Caddy取得证书；账户与数据已迁移、原密码保持不变，应用守护和每日备份已启用。实际验收及版本见[发布记录](docs/releases/2026-11-01-ecs-release.md)。开发机与ECS数据库彼此独立，后续使用云端地址，不进行双向同步。

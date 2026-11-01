@@ -1,0 +1,18 @@
+[Unit]
+Description=Research Tasks daily online SQLite backup
+After=research-tasks.service
+
+[Service]
+Type=oneshot
+User=research-tasks
+Group=research-tasks
+WorkingDirectory=/srv/research-tasks/current
+EnvironmentFile=/etc/research-tasks/app.env
+Environment=PATH=/srv/research-tasks/runtime/node/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/bin/bash /srv/research-tasks/current/scripts/backup-daily.sh
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/research-tasks /var/backups/research-tasks

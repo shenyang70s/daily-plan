@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up Research Tasks every day
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Shanghai
+Persistent=true
+Unit=research-tasks-backup.service
+
+[Install]
+WantedBy=timers.target

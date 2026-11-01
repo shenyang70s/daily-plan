@@ -1,0 +1,28 @@
+[Unit]
+Description=Research Tasks personal service
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=research-tasks
+Group=research-tasks
+WorkingDirectory=/srv/research-tasks/current
+EnvironmentFile=/etc/research-tasks/app.env
+Environment=PATH=/srv/research-tasks/runtime/node/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node apps/api/dist/main.js
+Restart=on-failure
+RestartSec=5
+MemoryMax=512M
+Environment=NODE_OPTIONS=--max-old-space-size=384
+TimeoutStopSec=30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/research-tasks /var/backups/research-tasks
+
+[Install]
+WantedBy=multi-user.target

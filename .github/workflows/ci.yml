@@ -6,6 +6,12 @@ on:
   pull_request:
     paths: ['apps/**', 'packages/**', 'infra/**', 'scripts/**', 'tests/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig*.json', 'playwright.config.ts', '.github/workflows/ci.yml']
   workflow_dispatch:
+    inputs:
+      verify_container:
+        description: Also build the optional Docker image
+        type: boolean
+        required: false
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -41,6 +47,10 @@ jobs:
       - run: corepack pnpm typecheck
       - run: corepack pnpm build
       - run: corepack pnpm exec tsc -p tsconfig.e2e.json
+      - name: Personal ECS unit and backup syntax
+        run: |
+          bash -n scripts/backup-daily.sh
+          systemd-analyze verify infra/deploy/ecs/systemd/research-tasks.service infra/deploy/ecs/systemd/research-tasks-backup.service infra/deploy/ecs/systemd/research-tasks-backup.timer
       - if: steps.changes.outputs.integration == 'true'
         run: corepack pnpm test:foundation
       - if: steps.changes.outputs.integration == 'true'
@@ -50,7 +60,8 @@ jobs:
       - run: corepack pnpm --filter @research/web test
       - run: corepack pnpm exec playwright install --with-deps chromium
       - run: corepack pnpm test:e2e
-      - name: Container build
+      - name: Optional container build
+        if: github.event_name == 'workflow_dispatch' && inputs.verify_container
         run: docker build --build-arg BUILD_REVISION=${{ github.sha }} -f infra/docker/app.Dockerfile -t research-tasks:${{ github.sha }} .
       - uses: actions/upload-artifact@v7
         if: failure()

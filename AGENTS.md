@@ -14,9 +14,9 @@ This repository contains design materials, a static prototype, and the applicati
 - `packages/contracts/`, `packages/domain/`, `packages/persistence/`: DTOs, domain rules, and SQLite persistence.
 - `infra/migrations/`: versioned SQL; `scripts/`: migration, account/demo and backup/restore CLIs.
 - `tests/e2e/`, `playwright.config.ts`: isolated browser workflows with deterministic model/source fixtures.
-- `infra/docker/`, `infra/deploy/`: single-instance image, Compose configuration and deployment/recovery runbooks.
+- `infra/docker/`, `infra/deploy/`: personal ECS systemd/HTTPS/backup configuration, optional container/Compose artifacts and recovery runbooks.
 
-The approved implementation uses SQLite and username/password sessions. Dependencies, type checks, frontend/backend builds, production driver tests, and in-memory HTTP authentication checks pass. Local isolated browser validation passes. Docker image execution and actual Staging validation remain pending. See the root README and implementation plan.
+The approved implementation uses SQLite and username/password sessions. Dependencies, type checks, frontend/backend builds, production driver tests, and in-memory HTTP authentication checks pass. Local isolated browser validation passes. Personal ECS direct deployment uses systemd/HTTPS/daily backups; personal ECS is deployed at plan.datafab.cn with HTTPS, data migration, automatic app restart and a verified backup timer; see docs/releases/2026-11-01-ecs-release.md. Docker, independent Staging and device push are optional. See the root README and implementation plan.
 
 ## Build, Test, and Development Commands
 

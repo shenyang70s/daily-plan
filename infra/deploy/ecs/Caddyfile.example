@@ -1,0 +1,4 @@
+# Replace with the same public hostname used by APP_ORIGIN.
+plan.datafab.cn {
+  reverse_proxy 127.0.0.1:3000
+}

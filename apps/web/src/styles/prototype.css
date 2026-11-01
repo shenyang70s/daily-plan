@@ -273,3 +273,16 @@
 .board-filter-menu .advanced-task-filters { margin-bottom: 0; }
 .board-more-menu > div { min-width: 130px; }
 .board-more-menu button { width: 100%; }
+
+.view-inbox > .task-page-heading { align-items: center; margin-bottom: 14px; }
+.view-inbox > .task-page-heading .eyebrow, .view-inbox > .task-page-heading .page-description { display: none; }
+.view-inbox .task-heading-actions { padding-top: 0; }
+.view-inbox > .ai-page-entry, .calendar-page > .ai-page-entry { padding: 7px 10px; margin-bottom: 14px; }
+.view-inbox > .ai-page-entry button, .calendar-page > .ai-page-entry button { height: 32px; }
+.inbox-toolbar { margin-bottom: 10px; }
+.calendar-page > .page-heading { margin-bottom: 14px; }
+.calendar-view-controls { position: relative; display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.calendar-view-controls .calendar-zone { margin: 0; white-space: nowrap; font-size: 11px; }
+.calendar-help > summary { cursor: pointer; list-style: none; font-size: 11px; color: var(--secondary); padding: 8px 0; }
+.calendar-help > summary::-webkit-details-marker { display: none; }
+.calendar-help > p { position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; width: min(360px, calc(100vw - 40px)); margin: 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); box-shadow: 0 8px 28px #17203312; }

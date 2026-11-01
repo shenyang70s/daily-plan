@@ -273,25 +273,28 @@ tests/e2e/                # 登录后的关键用户闭环
 - [x] 验证导出仅含当前用户数据、账户删除后会话/提醒/订阅失效、其他用户数据保留、未确认不能删除，先运行失败用例。
 - [x] 实现 JSON/CSV 导出、分组设置和删除流程；提供提醒调度积压、失败投递、AI 失败率及耗时、普通 API 延迟的基础观测。日志默认脱敏，不记录密钥和完整私人任务。
 - [x] 本地运行 `node --import tsx --test apps/api/test/integration/account-data.test.mjs`，完成导出、删除、限流、会话重验、日志脱敏和浏览器核对。
-- [ ] 在 Staging 使用隔离测试账户完成导出与删除核对（尚无 Staging 环境）。
+- 可选：独立Staging中的账户数据核对；用户已选择个人ECS单机交付，本地隔离验证及目标ECS必要验收替代独立Staging。
 - [ ] 提交：`feat: add account data controls and operational visibility`。
 
-## Task 14：核心 E2E、可恢复部署与交付
+## Task 14：核心 E2E、个人 ECS 运行与恢复交付
 
-2026-11-01：本地交付内容完成，见 [验证与待验收记录](../../releases/2026-11-01-local-release.md)。新增10项隔离Playwright E2E、5项恢复测试、1项完整重启恢复演练、在线备份/新路径恢复CLI、CI、单实例Docker/Compose和部署手册。看板顶部按用户反馈精简，1440/1180/600px追加检查通过。完整类型/构建与14项投递/深链回归通过；无真实young数据变更。当前无Docker、Staging地址，镜像与远端验收尚未执行；未提交/发布。下列外部验收保持未完成。
+2026-11-01（范围调整）：用户批准个人使用，并指定部署在ECS。当前采用[个人ECS直接部署方案](../../../infra/deploy/ecs/README.md)，不以Docker、独立Staging、真实设备推送或真实网络故障演练为完成条件。保留稳定启动/异常重启、持久化、备份恢复、HTTPS登录及AI失败保护。核心功能和本地验证已完成，个人ECS已发布至 https://plan.datafab.cn，Ubuntu24.04上沿用现有Caddy/systemd完成数据迁移、证书、真实DeepSeek调用、应用异常重启和备份任务验收，见[发布记录](../../releases/2026-11-01-ecs-release.md)。此前[本地交付记录](../../releases/2026-11-01-local-release.md)保留为历史验证记录。
 
 **Files:** 创建 `tests/e2e/{tasks,calendar,ai,submissions,notifications}.spec.ts`、`playwright.config.ts`、`infra/docker/app.Dockerfile`、`scripts/{backup,restore}.ts`、`infra/deploy/{staging,production,runbook}.md`、`.github/workflows/ci.yml`、根目录 `README.md`；修改 `AGENTS.md` 中项目结构和实际可用命令，保留全部核心原则。
 
-**Interfaces:** 单实例应用容器提供 Web/API 与提醒调度，SQLite 文件位于挂载的持久化本地卷；Local、Staging、Production 使用独立文件、身份回调和密钥。不使用无持久化磁盘的托管运行时，不把数据库文件放入镜像，不以多副本共享文件方式扩容。发布产物绑定源码提交，migration 使用 Expand/Contract，变更前能备份，失败可回退兼容的应用版本；涉及 SQLite 表结构重建的迁移显式验证索引、外键与现有数据。正式应用部署目标独立于 prototype 的 Sites 项目身份；具体云服务由部署环境决定。
+**Interfaces:** Linux ECS运行单个Node应用，systemd负责开机启动与异常重启，反向代理提供HTTPS，SQLite使用独立于源码目录的持久化绝对路径。systemd timer定时调用在线备份脚本，备份与元数据保留在独立目录并定期复制到其他设备/存储。恢复至新路径，停服后切换；源码版本、数据库迁移与回退配套。Docker及独立Staging保留为可选资料，不触发采购或远端发布。新增配置位于 `infra/deploy/ecs/`，定时脚本为 `scripts/backup-daily.sh`。
 
 - [x] 建立隔离 E2E 用户与测试库，覆盖：标题创建→收集箱→安排→Today→完成；点击日历时段创建且不改 due；AI 未确认零写入和确认后重载；CCF 导入不覆盖手动修订；通知稍后提醒/已读。
 - [x] 配置 CI 按变更路径执行类型、领域/模块测试、必要集成测试和构建；跨模块发布候选运行上述核心 E2E。Lint 不作为本轮额外强制检查；若未来设为团队标准，再更新脚本与 AGENTS.md。不添加无条件全量重复测试。
 - [x] 本任务因覆盖数据库、后台任务、鉴权与前端集成，执行 `pnpm typecheck`、`pnpm build` 和 `pnpm test:e2e`；另外仅运行尚未通过或受最终集成影响的模块测试，不机械重跑此前全部检查。
 - [x] 建立 `pnpm db:backup` 和 `pnpm db:restore`：备份使用驱动在线备份 API 产生一致快照，不直接复制运行中的主数据库文件。恢复前停写并关闭数据库连接，将备份恢复到新文件并进行 `integrity_check`、`foreign_key_check` 和迁移版本检查，通过后替换并重启服务。备份存放在运行卷之外，保留备份时间和版本；任务 JSON/CSV 导出不替代数据库备份。
-- [ ] 在 Staging 演练空库迁移、已有库升级、SQLite 备份恢复、应用服务重启、模型超时和 Push 失败；记录与此次变更无关的既有失败，不顺带修复无关模块。
+- [x] 用临时数据库完成空库/旧库迁移、备份恢复与应用重启；模拟模型失败验证输入保留且零误执行。
+- [x] 提供个人ECS的systemd服务、定时备份、HTTPS代理与运行手册；定时脚本临时库测试及unit语法检查通过。
+- [x] 目标ECS已验证：开机启用状态、应用异常重启、HTTPS登录、数据恢复/持久化、备份timer与实际备份产物；未重启整台主机。
+- 可选：独立Staging、Docker运行、真实设备推送与真实网络故障验收，不再阻塞个人版。
 - [x] 用浏览器按 1440 × 900、1180 px 和窄窗检查 Today、空收集箱、AI 预览、任务侧栏；验证日期及时区一致、焦点可达和退出后缓存清除。记录真实验证范围。
 - [x] 输出可审查的发布说明、环境变量清单和迁移/回退命令。
-- [ ] 提供实际 Staging 地址并完成镜像运行/远端验收；公开/生产发布须对应授权，本计划不触发发布。
+- [x] 记录目标ECS地址、发布包内容摘要及实际必要验收结果。源码工作区变更未冒充Git HEAD；实际版本记录在release.json。
 - [ ] 提交：`chore: prepare verified release and deployment runbook`。
 
 ## 首版完成标准与停止条件
@@ -302,7 +305,7 @@ tests/e2e/                # 登录后的关键用户闭环
 - 提醒由持久化服务端任务触发；模型不可用不影响手工管理任务。
 - 所有写操作遵守所有权、版本与幂等约束；AI 提案未经确认无业务更改。
 - CCF-DDL 来源、时区、秒和源版本可追溯；TBD 不猜测；用户修订受保护。
-- 与本次交付相关的检查通过，Staging 核心闭环和恢复路径有可核查记录。
+- 与本次交付相关的本地检查通过，个人ECS的必要运行项与恢复路径有可核查记录；独立Staging不是必需条件。
 
 满足以上标准即停止首版实施。每日/每周复盘、复杂任务拆解、外部日历同步、邮件、重复任务和后台自动抓取 CCF-DDL，应分别形成有明确验收的小计划，不在首版完成后顺带扩展。
 
@@ -312,7 +315,7 @@ tests/e2e/                # 登录后的关键用户闭环
 
 - Task 3：已确定用户名/口令；运行时由管理员创建账号，并配置各环境准确的 APP_ORIGIN。无需 OIDC 提供商或客户端密钥。
 - Task 9：选定的模型提供商、模型、密钥及预算/配额；不得用模拟解析冒充真实接入完成。
-- Task 14：带持久化本地磁盘的单实例 Staging/Production 运行环境、域名、SQLite 文件路径和独立备份位置。环境未提供时交付本地产物与部署说明，并明确真实环境验收尚未完成。
+- Task 14：个人ECS服务器的厂商/SSH连接信息、系统版本、访问域名或私有访问方案、持久化SQLite路径和备份位置。未提供时先交付通用配置并明确目标主机验收待执行；无需另购Docker或独立Staging环境。
 
 本计划只定义实现顺序和交付标准，不代表上述服务已选定、已部署或已授权采购。
 
