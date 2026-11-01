@@ -1,0 +1,62 @@
+name: Verify
+on:
+  push:
+    branches: [main, master]
+    paths: ['apps/**', 'packages/**', 'infra/**', 'scripts/**', 'tests/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig*.json', 'playwright.config.ts', '.github/workflows/ci.yml']
+  pull_request:
+    paths: ['apps/**', 'packages/**', 'infra/**', 'scripts/**', 'tests/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig*.json', 'playwright.config.ts', '.github/workflows/ci.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Classify changed paths
+        id: changes
+        env:
+          BASE_REVISION: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE_REVISION" ] && ! [[ "$BASE_REVISION" =~ ^0+$ ]]; then
+            git diff --name-only "$BASE_REVISION" HEAD > /tmp/changed-paths
+          else
+            git ls-files > /tmp/changed-paths
+          fi
+          if grep -Eq '^(apps/api/|packages/|infra/|scripts/|package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig|.github/)' /tmp/changed-paths; then
+            echo 'integration=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm typecheck
+      - run: corepack pnpm build
+      - run: corepack pnpm exec tsc -p tsconfig.e2e.json
+      - if: steps.changes.outputs.integration == 'true'
+        run: corepack pnpm test:foundation
+      - if: steps.changes.outputs.integration == 'true'
+        run: node --import tsx --test packages/domain/test/integration/*.test.mjs packages/persistence/test/integration/*.test.mjs apps/api/test/integration/*.test.mjs scripts/test/*.test.mjs
+      - if: steps.changes.outputs.integration == 'true'
+        run: bash scripts/test/account-cli.sh
+      - run: corepack pnpm --filter @research/web test
+      - run: corepack pnpm exec playwright install --with-deps chromium
+      - run: corepack pnpm test:e2e
+      - name: Container build
+        run: docker build --build-arg BUILD_REVISION=${{ github.sha }} -f infra/docker/app.Dockerfile -t research-tasks:${{ github.sha }} .
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: browser-failures
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

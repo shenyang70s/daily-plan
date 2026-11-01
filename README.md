@@ -213,7 +213,24 @@ corepack pnpm test:integration
 - 数据库启用 WAL、外键、FULL 同步和有界锁等待。事务回调必须同步；模型请求和外部通知不得放在持锁事务内。
 - 数据库、WAL/SHM、`.env` 和备份不提交到版本库。原型 `prototype/dist/` 是保留源码，未被构建目录忽略规则排除。
 - SQLite 文件需要持久化本地磁盘，不使用网络共享文件或多副本写入。
-- 暂无备份恢复命令；运行中的 WAL 数据库不能只复制主文件充当完整备份。计划 Task 14 将实现一致性备份和恢复流程。
+- `corepack pnpm db:backup <新备份文件>` 使用 SQLite 在线备份 API，生成快照及时间/版本/迁移校验和/SHA 元数据；拒绝覆盖。`corepack pnpm db:restore <备份文件> <新数据库路径>` 检查 SHA、完整性、外键及迁移前缀后恢复，只接受不存在的目标及 sidecar。先停写，再切换 `DATABASE_PATH` 并重启；不要只复制运行中的 WAL 主文件。备份必须存于独立持久化位置。
 - 登录采用用户名/口令，不使用 OIDC。口令使用带随机盐的 Node scrypt（N=32768、r=8、p=3），参数参考 [OWASP Password Storage](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#scrypt)。数据库只存口令哈希和会话令牌哈希。
 - 登录失败按连接 IP 限流，哈希并发限制为 2；若后续部署在共享反向代理之后，需先确定可信代理与真实客户端地址策略。
 - DeepSeek 仅从服务端环境读取密钥；生成方案与执行分离。业务变更须用户明确确认，经过版本、所有权和冲突校验后原子写入。
+
+
+## 核心浏览器与交付验证
+
+```bash
+corepack pnpm build
+corepack pnpm exec playwright install chromium
+corepack pnpm typecheck:e2e
+corepack pnpm test:e2e
+corepack pnpm test:recovery
+```
+
+E2E 固定使用临时 SQLite 文件、隔离测试账户和确定性模型/会议替身，不读取开发数据库或调用付费模型。覆盖 AI 未确认零写入、确认后刷新、收集箱到 Today 完成、日历时段与 due 分离、来源冲突保留、通知已读/稍后提醒、1440/1180/600px 布局和退出后的账户隔离。测试服务器只在 `RESEARCH_E2E=1` 时允许启动；它不进入生产入口和容器上下文。
+
+如需使用已有 Chromium，可设置 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` 为可执行文件绝对路径；CI 安装 Playwright 对应的浏览器。恢复测试还覆盖在线 WAL、篡改拒绝、旧库迁移前缀升级、外键错误和 CLI 不覆盖既有文件。
+
+CI 按代码路径触发，界面变更运行类型/构建/Web 测试和核心 E2E，后端/共享包/数据库变更追加领域与集成验证。镜像与部署资料见 [运行手册](infra/deploy/runbook.md)、[Staging 验收](infra/deploy/staging.md)、[生产发布条件](infra/deploy/production.md)。镜像按源码提交标记，数据库挂载本地持久化卷；本地测试通过不代表 Docker 或真实远端服务验收完成。当前无实际 Staging 地址，未执行生产发布。

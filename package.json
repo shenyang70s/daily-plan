@@ -15,14 +15,20 @@
     "test:foundation": "node --experimental-strip-types --test packages/domain/test/*.test.mjs packages/persistence/test/*.test.mjs",
     "build:shared": "corepack pnpm --filter @research/domain build && corepack pnpm --filter @research/contracts build && corepack pnpm --filter @research/persistence build",
     "account:create": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --env-file-if-exists=.env --import tsx scripts/create-account.ts",
-    "test:integration": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --test packages/domain/test/integration/*.test.mjs packages/persistence/test/integration/*.test.mjs apps/api/test/integration/*.test.mjs && bash scripts/test/account-cli.sh",
+    "test:integration": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --import tsx --test packages/domain/test/integration/*.test.mjs packages/persistence/test/integration/*.test.mjs apps/api/test/integration/*.test.mjs && bash scripts/test/account-cli.sh",
     "push:keys": "node scripts/push-keys.mjs",
-    "demo:seed": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --env-file-if-exists=.env --import tsx scripts/seed-demo.ts"
+    "demo:seed": "corepack pnpm build:shared && corepack pnpm --filter @research/api build && node --env-file-if-exists=.env --import tsx scripts/seed-demo.ts",
+    "db:backup": "node --env-file-if-exists=.env --import tsx scripts/backup.ts",
+    "db:restore": "node --env-file-if-exists=.env --import tsx scripts/restore.ts",
+    "test:e2e": "playwright test",
+    "test:recovery": "corepack pnpm --filter @research/persistence build && node --test packages/persistence/test/integration/backup.test.mjs",
+    "typecheck:e2e": "tsc -p tsconfig.e2e.json"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "concurrently": "^9.1.2",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@playwright/test": "^1.64.1"
   }
 }

@@ -278,17 +278,20 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 14：核心 E2E、可恢复部署与交付
 
+2026-11-01：本地交付内容完成，见 [验证与待验收记录](../../releases/2026-11-01-local-release.md)。新增10项隔离Playwright E2E、5项恢复测试、1项完整重启恢复演练、在线备份/新路径恢复CLI、CI、单实例Docker/Compose和部署手册。看板顶部按用户反馈精简，1440/1180/600px追加检查通过。完整类型/构建与14项投递/深链回归通过；无真实young数据变更。当前无Docker、Staging地址，镜像与远端验收尚未执行；未提交/发布。下列外部验收保持未完成。
+
 **Files:** 创建 `tests/e2e/{tasks,calendar,ai,submissions,notifications}.spec.ts`、`playwright.config.ts`、`infra/docker/app.Dockerfile`、`scripts/{backup,restore}.ts`、`infra/deploy/{staging,production,runbook}.md`、`.github/workflows/ci.yml`、根目录 `README.md`；修改 `AGENTS.md` 中项目结构和实际可用命令，保留全部核心原则。
 
 **Interfaces:** 单实例应用容器提供 Web/API 与提醒调度，SQLite 文件位于挂载的持久化本地卷；Local、Staging、Production 使用独立文件、身份回调和密钥。不使用无持久化磁盘的托管运行时，不把数据库文件放入镜像，不以多副本共享文件方式扩容。发布产物绑定源码提交，migration 使用 Expand/Contract，变更前能备份，失败可回退兼容的应用版本；涉及 SQLite 表结构重建的迁移显式验证索引、外键与现有数据。正式应用部署目标独立于 prototype 的 Sites 项目身份；具体云服务由部署环境决定。
 
-- [ ] 建立隔离 E2E 用户与测试库，覆盖：标题创建→收集箱→安排→Today→完成；点击日历时段创建且不改 due；AI 未确认零写入和确认后重载；CCF 导入不覆盖手动修订；通知稍后提醒/已读。
-- [ ] 配置 CI 按变更路径执行类型、领域/模块测试、必要集成测试和构建；跨模块发布候选运行上述核心 E2E。Lint 不作为本轮额外强制检查；若未来设为团队标准，再更新脚本与 AGENTS.md。不添加无条件全量重复测试。
-- [ ] 本任务因覆盖数据库、后台任务、鉴权与前端集成，执行 `pnpm typecheck`、`pnpm build` 和 `pnpm test:e2e`；另外仅运行尚未通过或受最终集成影响的模块测试，不机械重跑此前全部检查。
-- [ ] 建立 `pnpm db:backup` 和 `pnpm db:restore`：备份使用驱动在线备份 API 产生一致快照，不直接复制运行中的主数据库文件。恢复前停写并关闭数据库连接，将备份恢复到新文件并进行 `integrity_check`、`foreign_key_check` 和迁移版本检查，通过后替换并重启服务。备份存放在运行卷之外，保留备份时间和版本；任务 JSON/CSV 导出不替代数据库备份。
+- [x] 建立隔离 E2E 用户与测试库，覆盖：标题创建→收集箱→安排→Today→完成；点击日历时段创建且不改 due；AI 未确认零写入和确认后重载；CCF 导入不覆盖手动修订；通知稍后提醒/已读。
+- [x] 配置 CI 按变更路径执行类型、领域/模块测试、必要集成测试和构建；跨模块发布候选运行上述核心 E2E。Lint 不作为本轮额外强制检查；若未来设为团队标准，再更新脚本与 AGENTS.md。不添加无条件全量重复测试。
+- [x] 本任务因覆盖数据库、后台任务、鉴权与前端集成，执行 `pnpm typecheck`、`pnpm build` 和 `pnpm test:e2e`；另外仅运行尚未通过或受最终集成影响的模块测试，不机械重跑此前全部检查。
+- [x] 建立 `pnpm db:backup` 和 `pnpm db:restore`：备份使用驱动在线备份 API 产生一致快照，不直接复制运行中的主数据库文件。恢复前停写并关闭数据库连接，将备份恢复到新文件并进行 `integrity_check`、`foreign_key_check` 和迁移版本检查，通过后替换并重启服务。备份存放在运行卷之外，保留备份时间和版本；任务 JSON/CSV 导出不替代数据库备份。
 - [ ] 在 Staging 演练空库迁移、已有库升级、SQLite 备份恢复、应用服务重启、模型超时和 Push 失败；记录与此次变更无关的既有失败，不顺带修复无关模块。
-- [ ] 用浏览器按 1440 × 900、1180 px 和窄窗检查 Today、空收集箱、AI 预览、任务侧栏；验证日期及时区一致、焦点可达和退出后缓存清除。记录真实验证范围。
-- [ ] 输出可审查的发布说明、环境变量清单、迁移/回退命令和 Staging 地址。实际公开/生产发布在获得对应授权后执行；本实现计划本身不触发发布。
+- [x] 用浏览器按 1440 × 900、1180 px 和窄窗检查 Today、空收集箱、AI 预览、任务侧栏；验证日期及时区一致、焦点可达和退出后缓存清除。记录真实验证范围。
+- [x] 输出可审查的发布说明、环境变量清单和迁移/回退命令。
+- [ ] 提供实际 Staging 地址并完成镜像运行/远端验收；公开/生产发布须对应授权，本计划不触发发布。
 - [ ] 提交：`chore: prepare verified release and deployment runbook`。
 
 ## 首版完成标准与停止条件

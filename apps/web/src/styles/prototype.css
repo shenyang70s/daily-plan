@@ -256,3 +256,20 @@
 .account-status-heading h2 { margin: 0; }
 .account-delete-form label { display: grid; gap: 8px; margin: 18px 0; }
 .account-delete-form input { width: 100%; min-width: 0; height: 38px; border: 1px solid var(--border); border-radius: 7px; padding: 0 10px; }
+
+/* Keep the board in focus; show management controls only when requested. */
+.is-board > .task-page-heading { margin-bottom: 14px; }
+.is-board > .task-page-heading .eyebrow, .is-board > .task-page-heading .page-description { display: none; }
+.is-board > .ai-page-entry { padding: 7px 10px; margin-bottom: 14px; }
+.is-board > .ai-page-entry button { height: 32px; }
+.is-board .task-view-toolbar { margin-bottom: 14px; }
+.board-toolbar-tools { position: relative; display: flex; align-items: center; gap: 12px; }
+.board-filter-menu > summary, .board-more-menu > summary { cursor: pointer; padding: 8px 2px; list-style: none; }
+.board-filter-menu > summary::-webkit-details-marker, .board-more-menu > summary::-webkit-details-marker { display: none; }
+.board-filter-menu > div, .board-more-menu > div { position: absolute; right: 0; top: calc(100% + 8px); z-index: 5; padding: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 28px #17203312; }
+.board-filter-menu > div { width: min(620px, calc(100vw - 40px)); max-height: 60vh; overflow-y: auto; }
+.board-filter-menu .task-primary-filters > .task-filters { display: flex; flex-wrap: wrap; }
+.board-filter-menu .task-search { width: 100%; }
+.board-filter-menu .advanced-task-filters { margin-bottom: 0; }
+.board-more-menu > div { min-width: 130px; }
+.board-more-menu button { width: 100%; }

@@ -1,0 +1,22 @@
+services:
+  app:
+    image: research-tasks:${BUILD_REVISION:?Set the source revision}
+    build:
+      context: ../..
+      dockerfile: infra/docker/app.Dockerfile
+      args:
+        BUILD_REVISION: ${BUILD_REVISION:?Set the source revision}
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      BUILD_REVISION: ${BUILD_REVISION:?Set the source revision}
+      HOST: 0.0.0.0
+      PORT: 3000
+      DATABASE_PATH: ${DATABASE_PATH:-/data/research-tasks.sqlite}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ${DATA_DIRECTORY:?Set the persistent data directory}:/data
+      - ${BACKUP_DIRECTORY:?Set a separate backup location}:/backups
+    restart: unless-stopped
+    stop_grace_period: 30s

@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository contains design materials, a static prototype, and the initial application foundation for **Research Tasks**, an AI-assisted research task planner.
+This repository contains design materials, a static prototype, and the application for **Research Tasks**, an AI-native research task planner.
 
 - `docs/`: versioned system-design and frontend-design Word documents.
 - `docs/research_tasks_system_source_bundle/README.txt`: bundle contents and usage notes.
@@ -10,15 +10,17 @@ This repository contains design materials, a static prototype, and the initial a
 - `docs/research_tasks_system_source_bundle/research_tasks_system_assets/`: Graphviz `.dot` sources and corresponding `.png` diagrams.
 
 - `prototype/`: retained interactive prototype; its `dist/` files are source artifacts.
-- `apps/web/`, `apps/api/`: React/Vite and NestJS startup scaffolding.
+- `apps/web/`, `apps/api/`: React/Vite frontend and NestJS API, including AI planning, account controls, notifications and source imports.
 - `packages/contracts/`, `packages/domain/`, `packages/persistence/`: DTOs, domain rules, and SQLite persistence.
-- `infra/migrations/`: versioned SQL; `scripts/`: migration entry point.
+- `infra/migrations/`: versioned SQL; `scripts/`: migration, account/demo and backup/restore CLIs.
+- `tests/e2e/`, `playwright.config.ts`: isolated browser workflows with deterministic model/source fixtures.
+- `infra/docker/`, `infra/deploy/`: single-instance image, Compose configuration and deployment/recovery runbooks.
 
-The approved implementation uses SQLite and username/password sessions. Dependencies, type checks, frontend/backend builds, production driver tests, and in-memory HTTP authentication checks pass. The execution sandbox blocks TCP listening; browser and Staging validation remain pending. See the root README and implementation plan.
+The approved implementation uses SQLite and username/password sessions. Dependencies, type checks, frontend/backend builds, production driver tests, and in-memory HTTP authentication checks pass. Local isolated browser validation passes. Docker image execution and actual Staging validation remain pending. See the root README and implementation plan.
 
 ## Build, Test, and Development Commands
 
-Run `npm run test:foundation` for dependency-free domain and SQLite behavior checks. Application commands require dependency installation: `corepack pnpm install`, then `corepack pnpm dev`, `corepack pnpm build`, or `corepack pnpm typecheck`. `corepack pnpm db:migrate` initializes the configured SQLite file. Run `corepack pnpm account:create <username>` to create an account with a hidden password prompt, and `corepack pnpm test:integration` for driver/authentication/CLI checks. Application TCP startup must be checked in the host terminal. Preview design Markdown with an editor that resolves relative image paths.
+Run `npm run test:foundation` for dependency-free domain and SQLite behavior checks. Application commands require dependency installation: `corepack pnpm install`, then `corepack pnpm dev`, `corepack pnpm build`, or `corepack pnpm typecheck`. `corepack pnpm db:migrate` initializes the configured SQLite file. Run `corepack pnpm account:create <username>` to create an account with a hidden password prompt, and `corepack pnpm test:integration` for driver/authentication/CLI checks. Run `corepack pnpm exec playwright install chromium` once, then `corepack pnpm test:e2e` after a build; it always uses temporary accounts/database. Use `corepack pnpm test:recovery` for backup/restore checks, `corepack pnpm db:backup <new-file>` for an online SQLite snapshot and `corepack pnpm db:restore <backup> <new-database-file>` for verified recovery to a new path. Stop the application before switching databases; see `infra/deploy/runbook.md`. Preview design Markdown with an editor that resolves relative image paths.
 
 To regenerate a diagram from the repository root, install Graphviz and run:
 
@@ -34,7 +36,7 @@ Preserve the documents’ Chinese prose, numbered sections, tables, and relative
 
 ## Validation Guidelines
 
-For documentation changes, preview Markdown, verify image links, and inspect regenerated diagrams for clipping and legibility. Keep Word documents and editable sources consistent when changing shared content. Shared behavior tests live in `packages/{domain,persistence}/test/*.test.mjs` and use Node’s test runner with real temporary SQLite files. Production-driver and authentication checks live in `packages/persistence/test/integration/` and `apps/api/test/integration/`, with real temporary SQLite files. No coverage threshold is configured. Browser checks remain pending.
+For documentation changes, preview Markdown, verify image links, and inspect regenerated diagrams for clipping and legibility. Keep Word documents and editable sources consistent when changing shared content. Shared behavior tests live in `packages/{domain,persistence}/test/*.test.mjs` and use Node’s test runner with real temporary SQLite files. Production-driver and authentication checks live in `packages/persistence/test/integration/` and `apps/api/test/integration/`, with real temporary SQLite files. No coverage threshold is configured. Core browser checks live in `tests/e2e/`; they use synthetic model/source fixtures and do not prove real external service availability. Staging/device acceptance remains pending.
 
 ## Commit & Pull Request Guidelines
 
