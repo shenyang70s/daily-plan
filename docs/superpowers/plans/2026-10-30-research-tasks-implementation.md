@@ -264,13 +264,16 @@ tests/e2e/                # 登录后的关键用户闭环
 
 ## Task 13：数据导出、账户删除与必要运行信息
 
+2026-10-31：本地实现与验证完成。实际使用 `modules/account/{account.controller,account.module,export.service,deletion.service,status.service}.ts`、`common/observability.ts`、`AccountDataSettings.tsx` 和 `IntegrationSettings.tsx`；沿用已有分组偏好组件，未重复拆分。JSON/CSV 均按账户导出；删除重验密码、确认文字与会话，并通过外键事务清理；状态仅显示当前账户指标。5项账户数据集成测试及7项认证/AI HTTP回归、前后端编译和隔离浏览器检查通过。无新迁移，young 真实数据未改动。Staging 未配置，尚未部署或提交。下列为原计划参考。
+
 **Files:** 创建 `apps/api/src/modules/account/{export.service,deletion.service,account.controller}.ts`、`apps/web/src/features/settings/{GeneralSettings,NotificationSettings,AISettings,IntegrationSettings,AccountDataSettings}.tsx`、`apps/api/src/common/observability.ts`；测试 `apps/api/test/integration/account-data.spec.ts`。
 
 **Interfaces:** 补充 `GET /account/export?format=json|csv`、`DELETE /account`；删除须重验身份和显式确认。偏好读写使用 Task 3 的 `/me/preferences`。IntegrationSettings 只显示实际接入状态，不能提供可点击但无行为的连接按钮。
 
-- [ ] 验证导出仅含当前用户数据、账户删除后会话/提醒/订阅失效、其他用户数据保留、未确认不能删除，先运行失败用例。
-- [ ] 实现 JSON/CSV 导出、分组设置和删除流程；提供提醒调度积压、失败投递、AI 失败率及耗时、普通 API 延迟的基础观测。日志默认脱敏，不记录密钥和完整私人任务。
-- [ ] 运行 `pnpm --filter @research/api test:integration --runInBand test/integration/account-data.spec.ts`；在 Staging 使用测试账户完成导出与删除核对。
+- [x] 验证导出仅含当前用户数据、账户删除后会话/提醒/订阅失效、其他用户数据保留、未确认不能删除，先运行失败用例。
+- [x] 实现 JSON/CSV 导出、分组设置和删除流程；提供提醒调度积压、失败投递、AI 失败率及耗时、普通 API 延迟的基础观测。日志默认脱敏，不记录密钥和完整私人任务。
+- [x] 本地运行 `node --import tsx --test apps/api/test/integration/account-data.test.mjs`，完成导出、删除、限流、会话重验、日志脱敏和浏览器核对。
+- [ ] 在 Staging 使用隔离测试账户完成导出与删除核对（尚无 Staging 环境）。
 - [ ] 提交：`feat: add account data controls and operational visibility`。
 
 ## Task 14：核心 E2E、可恢复部署与交付

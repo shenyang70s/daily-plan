@@ -21,7 +21,7 @@ function dateIn(timezone: string, at = Date.now()): string {
 }
 export function TasksPage({ userId, timezone, view, initialType }: { userId: string; timezone: string; view: 'today' | 'inbox' | 'all'; initialType?: TaskDto['type'] | undefined }) {
   const defaults = { ...initialFilters, type: initialType ?? '' };
-  const [filters, setFilters] = useState<Filters>(defaults), [board, setBoard] = useState(false), [command, setCommand] = useState('');
+  const [filters, setFilters] = useState<Filters>(defaults), [board, setBoard] = useState(true), [command, setCommand] = useState('');
   const [panel, setPanel] = useState<'projects' | null>(null);
   useEffect(() => { setFilters(current => ({ ...current, type: initialType ?? '' })); }, [initialType]);
   useEffect(() => { const clear = () => setCommand(''); window.addEventListener('research:task-created', clear); return () => window.removeEventListener('research:task-created', clear); }, []);

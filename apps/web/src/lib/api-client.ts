@@ -18,17 +18,19 @@ export class ApiError extends Error {
   ) { super(message); }
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestInit & { responseType?: 'blob' } = {}): Promise<T> {
+  const { responseType, ...requestOptions } = options;
   const headers = new Headers(options.headers);
   const method = (options.method || 'GET').toUpperCase();
   if (options.body) headers.set('Content-Type', 'application/json');
   if (!['GET', 'HEAD'].includes(method) && csrfToken) headers.set('X-CSRF-Token', csrfToken);
-  const response = await fetch(`/api/v1${path}`, { ...options, headers, credentials: 'same-origin' });
+  const response = await fetch(`/api/v1${path}`, { ...requestOptions, headers, credentials: 'same-origin' });
   if (response.status === 401 && path !== '/auth/login' && path !== '/me') {
     setCsrfToken('');
     for (const listener of sessionListeners) listener();
   }
   if (response.status === 204 && response.ok) return undefined as T;
+  if (response.ok && responseType === 'blob') return await response.blob() as T;
   let data: unknown;
   try { data = await response.json(); }
   catch (error) {

@@ -49,7 +49,7 @@ function SessionWorkspace() {
   return <ToastProvider key={me.data.user.id}><AppShell user={me.data.user} timezone={me.data.preferences.timezone} route={route} pathname={pathname}
     onLogout={() => logout.mutate()} loggingOut={logout.isPending} logoutError={logout.isError ? logout.error.message : undefined}>
     {me.isError && <p className="error" role="alert">{text.unavailable} <button onClick={() => void me.refetch()}>{text.retry}</button></p>}
-    <RoutePage route={route} userId={me.data.user.id} username={me.data.user.username} preferences={me.data.preferences} onSaved={() => void client.invalidateQueries({ queryKey: ['me'] })} />
+    <RoutePage onDeleted={resetSession} route={route} userId={me.data.user.id} username={me.data.user.username} preferences={me.data.preferences} onSaved={() => void client.invalidateQueries({ queryKey: ['me'] })} />
   </AppShell></ToastProvider>;
 }
 

@@ -218,3 +218,14 @@ export const ManualPlanSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('move_block'), blockId: z.string().uuid(), expectedVersion: z.number().int().min(1), range: CalendarRangeSchema }).strict(),
 ]);
 export type ManualPlanInput = z.infer<typeof ManualPlanSchema>;
+
+export const AccountExportQuerySchema = z.object({ format: z.enum(['json', 'csv']).default('json') }).strict();
+export const DeleteAccountSchema = z.object({ password: z.string().min(1).max(128), confirmation: z.string().min(1).max(80) }).strict();
+export type DeleteAccountInput = z.infer<typeof DeleteAccountSchema>;
+export interface AccountExportDto { schemaVersion: 1; exportedAt: string; account: { id: string; username: string; createdAt: string }; preferences: Record<string, unknown>; data: Record<string, Record<string, unknown>[]> }
+export interface AccountStatusDto {
+  observedAt: string;
+  reminders: { overdue: number; queuedDeliveries: number; oldestWaitSeconds: number; failedDeliveries: number; failedPushDeliveries: number };
+  ai: { since: string; completed: number; failed: number; failureRate: number | null; avgDurationMs: number | null };
+  api: { since: string; requests: number; errors: number; avgDurationMs: number; p95DurationMs: number; sampleCount: number };
+}
