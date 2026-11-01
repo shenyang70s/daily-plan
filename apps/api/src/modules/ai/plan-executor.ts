@@ -3,7 +3,7 @@ import { prepareUndo } from './undo-execution.js';
 import { AiActionSchema, CreateTaskSchema, CreateReminderSchema, CreateMilestoneSchema } from '@research/contracts';
 import type { AiAction, AiDeleteChallenge, AiExecutionDto, AiImpact, AiPlan, CalendarRange, CalendarItem, TaskDto } from '@research/contracts';
 import type { Database, Transaction } from '@research/persistence';
-import { calendarDateAt, calendarWindow, shiftCalendarDate, suggestSchedule, calendarTimezone } from '@research/domain';
+import { calendarDateAt, calendarWindow, shiftCalendarDate, suggestSchedule, calendarTimezone, localDateTimeAt } from '@research/domain';
 import type { SessionContext, IdentityService } from '../identity/identity.service.js';
 import { TasksService } from '../tasks/tasks.service.js';
 import { CalendarService } from '../calendar/calendar.service.js';
@@ -85,11 +85,18 @@ export class AiPlanExecutor {
       const before = this.before(ctx, a) as { version?: number } | null;
       const expected = 'changes' in a ? a.changes.expectedVersion : a.kind === 'reminder_cancel' || a.kind === 'task_delete' ? a.expectedVersion : undefined;
       if (before && expected !== before.version) throw new AppError(409, 'VERSION_CONFLICT', '方案依据的记录版本已变化，请重新生成');
+      if (a.kind === 'task_create' && a.timeWindow) {
+        warnings.push(`“${a.task.title}”按${a.timeWindow.start}–${a.timeWindow.end}的建议时间范围安排，优先于默认工作时间；确认后保存。`);
+        if (a.schedule) {
+          const start = localDateTimeAt(a.schedule.startAt, preferences.timezone), end = localDateTimeAt(a.schedule.endAt, preferences.timezone);
+          if (start.slice(0, 10) !== end.slice(0, 10) || start.slice(11, 16) < a.timeWindow.start || end.slice(11) > `${a.timeWindow.end}:00` || a.preferredDate && start.slice(0, 10) !== a.preferredDate) throw new AppError(422, 'AI_INVALID_SCHEDULE', '建议时段不在指定日期或时间范围内，请重新规划');
+        }
+      }
       if (a.kind === 'task_create' && a.autoSchedule && !a.schedule) {
         if (a.task.durationMinutes == null || a.task.durationMinutes === 0) { a.task.durationMinutes = 30; warnings.push(`“${a.task.title}”未给出有效预计时长，暂按30分钟安排。`); }
         const today = a.preferredDate ?? calendarDateAt(new Date(this.now()).toISOString(), preferences.timezone), from = calendarWindow(today, 'day', preferences.timezone).from, to = calendarWindow(shiftCalendarDate(today, a.preferredDate ? 0 : 6), 'day', preferences.timezone).to;
         const items = calendar.list(ctx, { from, to, timezone: preferences.timezone }).items.filter((item): item is CalendarItem => 'kind' in item);
-        const suggested = suggestSchedule({ ...preferences, now: this.now(), durationMinutes: a.task.durationMinutes, ...(a.preferredDate ? { preferredDate: a.preferredDate } : {}), due: a.task.due, items: [...items, ...reserved] });
+        const suggested = suggestSchedule({ ...preferences, ...(a.timeWindow ? { workStart: a.timeWindow.start, workEnd: a.timeWindow.end } : {}), now: this.now(), durationMinutes: a.task.durationMinutes, ...(a.preferredDate ? { preferredDate: a.preferredDate } : {}), due: a.task.due, items: [...items, ...reserved] });
         if (suggested) a.schedule = suggested; else warnings.push(`“${a.task.title}”没有符合约束的空档，将仅创建未安排任务。`);
       }
       const range = a.kind === 'task_create' ? a.schedule : a.kind === 'event_create' ? a.event : a.kind === 'block_create' ? a.input : a.kind === 'block_update' ? a.changes : a.kind === 'event_update' ? { ...(before as CalendarRange | null), ...a.changes } : undefined;

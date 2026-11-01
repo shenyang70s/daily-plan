@@ -26,7 +26,7 @@ export function seedResearchData(db: Database, username: string, now = Date.now(
     const ids: DemoManifest['ids'] = { projects: {}, tasks: {}, blocks: [], events: {}, submissions: {}, milestones: {}, reminders: {}, notifications: [] }, skipped: string[] = [];
     const key = (label: string) => `${datasetKey}:${label}`;
     const note = (text = '') => `${mark}科研工作流演示数据。任务状态、指标和排期均为模拟，不会启动真实训练或设备评测。\n${text}`;
-    for (const [name, title] of Object.entries({ edge: '边缘智能：事件感知与低功耗推理', snn: '脉冲神经网络：训练与时序优化', brain: '类脑计算：神经形态软硬件协同', paper: '研究整合：论文与顶会投稿' })) ids.projects[name] = tasks.createProject(ctx, { name: `${mark}${title}` }, key(`project:${name}`)).id;
+    for (const [name, title] of Object.entries({ edge: '边缘智能：事件感知与低功耗推理', snn: '脉冲神经网络：训练与时序优化', brain: '类脑计算：神经形态软硬件协同', paper: '研究整合：论文与顶会投稿' })) ids.projects[name] = tasks.createProject(ctx, { name: `【课题】${title}` }, key(`project:${name}`)).id;
     const specs: TaskSpec[] = [
       { key:'edge_reading',title:'精读事件驱动视觉与边缘推理综述',project:'edge',type:'paper_reading',status:'in_progress',due:0,minutes:60,priority:'high',slot:[0,'09:00'] },
       { key:'snn_baseline',title:'复现 SNN 代理梯度训练基线',project:'snn',type:'experiment',status:'in_progress',due:0,minutes:90,priority:'high',slot:[0,'10:30'],note:'记录训练配置、随机种子、时间步数与验证流程；这里只展示规划状态，没有启动GPU任务。' },

@@ -22,3 +22,21 @@ test('board is the default focus and secondary tools stay collapsed', async ({ p
     await page.getByText('更多', { exact: true }).click();
   }
 });
+test('board cards use concise project tags with full names available on hover', async ({ page }) => {
+  await signIn(page, 'board-project');
+  const name='【课题】边缘智能：事件感知与低功耗推理';
+  const project=await api(page,'/projects',{name});
+  await api(page,'/tasks',{title:'有课题的任务',projectId:project.id,type:'experiment'});
+  await api(page,'/tasks',{title:'无课题的任务',type:'paper_reading'});
+  await page.goto('/tasks');
+  const linked=page.locator('.task-board-card').filter({hasText:'有课题的任务'}),unlinked=page.locator('.task-board-card').filter({hasText:'无课题的任务'});
+  await expect(linked.locator('.task-board-project')).toHaveText('边缘智能');await expect(linked.locator('.task-board-project')).toHaveAttribute('title',name);
+  await expect(linked.locator('.task-board-meta')).toHaveText('边缘智能');await expect(linked.locator('.task-board-type')).toHaveCount(0);await expect(unlinked.locator('.task-board-project')).toHaveCount(0);
+  await expect(unlinked.locator('.task-board-meta')).toHaveText('论文阅读');
+  for(const width of [1440,600]){
+    await page.setViewportSize({width,height:900});
+    const fits=await linked.locator('.task-board-meta').evaluate(element=>({overflow:getComputedStyle(element.querySelector('.task-board-project')).textOverflow,height:element.getBoundingClientRect().height}));
+    expect(fits.overflow).toBe('ellipsis');expect(fits.height).toBeLessThan(25);expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+    await page.screenshot({path:`test-results/board-project-${width}.png`});
+  }
+});

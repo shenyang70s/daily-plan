@@ -152,9 +152,11 @@ export const AiDraftDeadlineSchema = z.discriminatedUnion('kind', [
 export const AiDraftSchema = CreateTaskSchema.omit({ due: true, projectId: true, externalUrl: true }).extend({ due: AiDraftDeadlineSchema, note: z.string().max(2000).default('') }).strict();
 const aiReference = z.string().uuid().or(z.string().regex(/^new:[0-9]{1,2}$/));
 const aiTask = CreateTaskSchema.extend({ projectId: aiReference.nullable().default(null) });
+const clockTime = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
+const AiTimeWindowSchema = z.object({ start: clockTime, end: clockTime }).strict().refine(window => window.start < window.end, '时间窗口结束必须晚于开始');
 export const AiActionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('task_delete'), id: z.string().uuid(), expectedVersion: z.number().int().min(1) }).strict(),
-  z.object({ kind: z.literal('task_create'), task: aiTask, schedule: CalendarRangeSchema.optional(), autoSchedule: z.boolean().default(false), preferredDate: localDate.optional() }).strict(),
+  z.object({ kind: z.literal('task_create'), task: aiTask, schedule: CalendarRangeSchema.optional(), autoSchedule: z.boolean().default(false), preferredDate: localDate.optional(), timeWindow: AiTimeWindowSchema.optional() }).strict(),
   z.object({ kind: z.literal('task_update'), id: z.string().uuid(), changes: UpdateTaskSchema }).strict(),
   z.object({ kind: z.literal('block_create'), input: CreateScheduleBlockSchema.omit({ conflictToken: true }) }).strict(),
   z.object({ kind: z.literal('block_update'), id: z.string().uuid(), changes: UpdateScheduleBlockSchema.omit({ conflictToken: true }) }).strict(),

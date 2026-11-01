@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { BeforeApplicationShutdown, OnApplicationBootstrap } from '@nestjs/common';
 import { AiDecisionSchema } from '@research/contracts';
 import type { AiConfigDto, AiInterpretResult, AiRunDto, AiPlan, AiExecutionDto, ManualPlanInput } from '@research/contracts';
-import { normalizeDeadline, calendarTimezone } from '@research/domain';
+import { normalizeDeadline, calendarTimezone, calendarDateAt, shiftCalendarDate } from '@research/domain';
 import type { Database } from '@research/persistence';
 import type { SessionContext, IdentityService } from '../identity/identity.service.js';
 import type { ModelProvider } from './provider-adapter.js';
@@ -97,9 +97,7 @@ export class AiOrchestrator implements OnApplicationBootstrap, BeforeApplication
       else if (decision.kind === 'clarification') result = decision;
       else if (decision.kind === 'proposal') {
         const clockExplicit = /(?:\d{1,2}[:：]\d{2}|[\d一二两三四五六七八九十]+\s*[点时])/.test(text);
-        const ambiguous = /(?:晚上|下午|上午|中午|早上|早晨|傍晚|今晚|明晚|稍后|过几天)/.test(text) && !clockExplicit;
-        const vagueDay = /(?:下周|本周|下个月|近期)/.test(text) && !/(?:周[一二三四五六日天]|\d{1,2}[日号]|\d{4}-\d{2}-\d{2})/.test(text);
-        if (ambiguous || vagueDay || decision.draft.due?.kind === 'local' && !clockExplicit) result = { kind: 'clarification', question: '请补充具体日期和钟点；如果只需要日期期限，请明确说明“仅日期”，也可不设期限放入收集箱。' };
+        if (decision.draft.due?.kind === 'local' && !clockExplicit) result = { kind: 'clarification', question: '这是明确的截止时刻吗？请补充截止钟点，或说明仅设置日期期限。' };
         else {
           const { due, ...fields } = decision.draft;
           try {
@@ -118,7 +116,10 @@ export class AiOrchestrator implements OnApplicationBootstrap, BeforeApplication
         }
       } else { this.phase(id, 'querying'); result = this.tools.query(ctx, decision, timezone, this.now()); }
       if (result.kind === 'proposal') {
-        const actions = [{ kind: 'task_create' as const, task: result.draft, autoSchedule: true, ...(result.schedule ? { schedule: result.schedule } : {}) }];
+        const period = /下午/.test(text) ? { start: '13:00', end: '18:00' } : /晚上|今晚|明晚/.test(text) ? { start: '18:00', end: '22:00' } : /上午|早上|早晨/.test(text) ? { start: '09:00', end: '12:00' } : /中午/.test(text) ? { start: '12:00', end: '14:00' } : /傍晚/.test(text) ? { start: '17:00', end: '19:00' } : undefined;
+        const today = calendarDateAt(new Date(this.now()).toISOString(), timezone);
+        const preferredDate = /后天/.test(text) ? shiftCalendarDate(today, 2) : /明天|明晚/.test(text) ? shiftCalendarDate(today, 1) : /今天|今晚/.test(text) ? today : undefined;
+        const actions = [{ kind: 'task_create' as const, task: result.draft, autoSchedule: true, ...(preferredDate ? { preferredDate } : {}), ...(!result.schedule && period ? { timeWindow: period } : {}), ...(result.schedule ? { schedule: result.schedule } : {}) }];
         const prepared = new AiPlanExecutor(this.db, this.identity, this.now).prepare(ctx, actions, research);
         result = { kind: 'plan', title: '安排新任务', explanation: '根据你的描述和当前工作时间安排任务。', assumptions: result.assumptions, ...prepared, contextSummary: research.summary };
       }
